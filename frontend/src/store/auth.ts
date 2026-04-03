@@ -1,0 +1,78 @@
+import { authApi, type UserResponse } from "@/services/auth"
+import { create } from "zustand"
+
+interface AuthState {
+  user: UserResponse | null
+  isAuthenticated: boolean
+  isLoading: boolean
+  error: string | null
+
+  login: (email: string, password: string) => Promise<void>
+  signup: (email: string, username: string, password: string) => Promise<void>
+  logout: () => void
+  fetchUser: () => Promise<void>
+  clearError: () => void
+  setCurrency: (currency: string) => Promise<void>
+}
+
+export const useAuthStore = create<AuthState>((set, get) => ({
+  user: null,
+  isAuthenticated: !!localStorage.getItem("access_token"),
+  isLoading: false,
+  error: null,
+
+  login: async (email, password) => {
+    set({ isLoading: true, error: null })
+    try {
+      const { data } = await authApi.login({ email, password })
+      localStorage.setItem("access_token", data.access_token)
+      localStorage.setItem("refresh_token", data.refresh_token)
+
+      const { data: user } = await authApi.getMe()
+      set({ user, isAuthenticated: true, isLoading: false })
+    } catch (err: any) {
+      const message =
+        err.response?.data?.detail ?? "Login failed. Please try again."
+      set({ error: message, isLoading: false })
+      throw err
+    }
+  },
+
+  signup: async (email, username, password) => {
+    set({ isLoading: true, error: null })
+    try {
+      await authApi.signup({ email, username, password })
+      set({ isLoading: false })
+    } catch (err: any) {
+      const message =
+        err.response?.data?.detail ?? "Signup failed. Please try again."
+      set({ error: message, isLoading: false })
+      throw err
+    }
+  },
+
+  logout: () => {
+    localStorage.removeItem("access_token")
+    localStorage.removeItem("refresh_token")
+    set({ user: null, isAuthenticated: false })
+  },
+
+  fetchUser: async () => {
+    set({ isLoading: true })
+    try {
+      const { data } = await authApi.getMe()
+      set({ user: data, isAuthenticated: true, isLoading: false })
+    } catch {
+      localStorage.removeItem("access_token")
+      localStorage.removeItem("refresh_token")
+      set({ user: null, isAuthenticated: false, isLoading: false })
+    }
+  },
+
+  setCurrency: async (currency) => {
+    const { data } = await authApi.updateCurrency(currency)
+    set({ user: data })
+  },
+
+  clearError: () => set({ error: null }),
+}))

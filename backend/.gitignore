@@ -1,0 +1,23 @@
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# mypy / pytest
+.mypy_cache/
+.pytest_cache/
+htmlcov/
+.coverage

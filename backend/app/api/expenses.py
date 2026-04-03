@@ -1,0 +1,88 @@
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.deps import get_current_user
+from app.db.session import get_db
+from app.models.user import User
+from app.schemas.expense import (
+    ExpenseCreate,
+    ExpenseResponse,
+    ExpenseUpdate,
+    PaginatedExpenses,
+)
+from app.services.expense_service import ExpenseService
+
+router = APIRouter(prefix="/expenses", tags=["Expenses"])
+
+
+@router.get("", response_model=PaginatedExpenses)
+async def list_expenses(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=100),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    service = ExpenseService(db)
+    items, total = await service.list_expenses(current_user.id, page, page_size)
+    import math
+
+    return PaginatedExpenses(
+        items=items,
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=math.ceil(total / page_size) if total > 0 else 1,
+    )
+
+
+@router.post("", response_model=ExpenseResponse, status_code=201)
+async def create_expense(
+    data: ExpenseCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    service = ExpenseService(db)
+    expense = await service.create_expense(data, current_user.id)
+    return ExpenseResponse(
+        id=expense.id,
+        user_id=expense.user_id,
+        category_id=expense.category_id,
+        amount=expense.amount,
+        description=expense.description,
+        date=expense.date,
+        created_at=expense.created_at,
+    )
+
+
+@router.put("/{expense_id}", response_model=ExpenseResponse)
+async def update_expense(
+    expense_id: str,
+    data: ExpenseUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from uuid import UUID
+
+    service = ExpenseService(db)
+    expense = await service.update_expense(UUID(expense_id), data, current_user.id)
+    return ExpenseResponse(
+        id=expense.id,
+        user_id=expense.user_id,
+        category_id=expense.category_id,
+        amount=expense.amount,
+        description=expense.description,
+        date=expense.date,
+        created_at=expense.created_at,
+    )
+
+
+@router.delete("/{expense_id}", status_code=204)
+async def delete_expense(
+    expense_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from uuid import UUID
+
+    service = ExpenseService(db)
+    await service.delete_expense(UUID(expense_id), current_user.id)
