@@ -1,3 +1,5 @@
+from datetime import date, timedelta
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,15 +17,31 @@ from app.services.expense_service import ExpenseService
 router = APIRouter(prefix="/expenses", tags=["Expenses"])
 
 
+def _period_range(period: str) -> tuple[date, date]:
+    today = date.today()
+    if period == "week":
+        return today - timedelta(days=today.weekday()), today
+    if period == "month":
+        return today.replace(day=1), today
+    if period == "year":
+        return today.replace(month=1, day=1), today
+    # default: today
+    return today, today
+
+
 @router.get("", response_model=PaginatedExpenses)
 async def list_expenses(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
+    period: str = Query("today"),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     service = ExpenseService(db)
-    items, total = await service.list_expenses(current_user.id, page, page_size)
+    date_from, date_to = _period_range(period)
+    items, total = await service.list_expenses(
+        current_user.id, page, page_size, date_from, date_to
+    )
     import math
 
     return PaginatedExpenses(

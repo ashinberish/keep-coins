@@ -27,9 +27,9 @@ export interface PaginatedExpenses {
 }
 
 export const expensesApi = {
-  list: (page = 1, pageSize = 10) =>
+  list: (page = 1, pageSize = 10, period = "today") =>
     api.get<PaginatedExpenses>("/expenses", {
-      params: { page, page_size: pageSize },
+      params: { page, page_size: pageSize, period },
     }),
 
   create: (data: CreateExpensePayload) => api.post<Expense>("/expenses", data),

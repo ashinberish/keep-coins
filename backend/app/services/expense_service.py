@@ -1,4 +1,5 @@
 import uuid
+from datetime import date
 
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,9 +14,16 @@ class ExpenseService:
         self.repo = ExpenseRepository(db)
 
     async def list_expenses(
-        self, user_id: uuid.UUID, page: int = 1, page_size: int = 10
+        self,
+        user_id: uuid.UUID,
+        page: int = 1,
+        page_size: int = 10,
+        date_from: date | None = None,
+        date_to: date | None = None,
     ) -> tuple[list[dict], int]:
-        return await self.repo.get_paginated_for_user(user_id, page, page_size)
+        return await self.repo.get_paginated_for_user(
+            user_id, page, page_size, date_from, date_to
+        )
 
     async def create_expense(self, data: ExpenseCreate, user_id: uuid.UUID) -> Expense:
         expense = Expense(

@@ -50,6 +50,9 @@ export default function ExpensesPage() {
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
   const PAGE_SIZE = 10
+  const [period, setPeriod] = useState<"today" | "week" | "month" | "year">(
+    "today"
+  )
 
   // form state
   const [amount, setAmount] = useState("")
@@ -58,9 +61,9 @@ export default function ExpensesPage() {
   const [date, setDate] = useState<Date | undefined>(new Date())
   const [submitting, setSubmitting] = useState(false)
 
-  async function fetchExpenses(p: number) {
+  async function fetchExpenses(p: number, per = period) {
     try {
-      const { data } = await expensesApi.list(p, PAGE_SIZE)
+      const { data } = await expensesApi.list(p, PAGE_SIZE, per)
       setExpenses(data.items)
       setTotalPages(data.total_pages)
       setTotal(data.total)
@@ -73,7 +76,7 @@ export default function ExpensesPage() {
   async function fetchData() {
     try {
       const [expRes, catRes] = await Promise.all([
-        expensesApi.list(1, PAGE_SIZE),
+        expensesApi.list(1, PAGE_SIZE, period),
         categoriesApi.list(),
       ])
       setExpenses(expRes.data.items)
@@ -94,6 +97,10 @@ export default function ExpensesPage() {
   useEffect(() => {
     fetchData()
   }, [])
+
+  useEffect(() => {
+    fetchExpenses(1, period)
+  }, [period])
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -240,8 +247,29 @@ export default function ExpensesPage() {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Last Expenses</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <CardTitle>
+            {period === "today"
+              ? "Today"
+              : period === "week"
+                ? "This Week"
+                : period === "month"
+                  ? "This Month"
+                  : "This Year"}
+          </CardTitle>
+          <div className="flex gap-1">
+            {(["today", "week", "month", "year"] as const).map((p) => (
+              <Button
+                key={p}
+                variant={period === p ? "default" : "outline"}
+                size="sm"
+                onClick={() => setPeriod(p)}
+                className="text-xs capitalize"
+              >
+                {p}
+              </Button>
+            ))}
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -249,9 +277,10 @@ export default function ExpensesPage() {
           ) : total === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Receipt className="mb-4 h-12 w-12 text-muted-foreground/40" />
-              <h3 className="text-lg font-medium">No expenses yet</h3>
+              <h3 className="text-lg font-medium">No expenses found</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                Add your first expense above to start tracking your spending.
+                No expenses for this period. Try a different range or add one
+                above.
               </p>
             </div>
           ) : (

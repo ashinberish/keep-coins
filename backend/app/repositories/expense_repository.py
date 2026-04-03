@@ -1,4 +1,5 @@
 import uuid
+from datetime import date
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,9 +13,18 @@ class ExpenseRepository:
         self.db = db
 
     async def get_paginated_for_user(
-        self, user_id: uuid.UUID, page: int, page_size: int
+        self,
+        user_id: uuid.UUID,
+        page: int,
+        page_size: int,
+        date_from: date | None = None,
+        date_to: date | None = None,
     ) -> tuple[list[dict], int]:
         base = select(Expense).where(Expense.user_id == user_id)
+        if date_from:
+            base = base.where(Expense.date >= date_from)
+        if date_to:
+            base = base.where(Expense.date <= date_to)
 
         count_result = await self.db.execute(
             select(func.count()).select_from(base.subquery())
@@ -25,6 +35,8 @@ class ExpenseRepository:
             select(Expense, Category.name.label("category_name"))
             .join(Category, Expense.category_id == Category.id)
             .where(Expense.user_id == user_id)
+            .where(Expense.date >= date_from if date_from else True)
+            .where(Expense.date <= date_to if date_to else True)
             .order_by(Expense.date.desc(), Expense.created_at.desc())
             .offset((page - 1) * page_size)
             .limit(page_size)
