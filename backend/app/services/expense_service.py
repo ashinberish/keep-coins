@@ -54,3 +54,8 @@ class ExpenseService:
                 status_code=status.HTTP_404_NOT_FOUND, detail="Expense not found"
             )
         await self.repo.delete(expense)
+
+    async def total_for_range(
+        self, user_id: uuid.UUID, date_from: date, date_to: date
+    ) -> float:
+        return await self.repo.total_for_range(user_id, date_from, date_to)

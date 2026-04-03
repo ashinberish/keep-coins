@@ -26,6 +26,7 @@ import { useAuthStore } from "@/store/auth"
 import {
   BarChart3,
   ChevronsUpDown,
+  Landmark,
   LogOut,
   Receipt,
   Settings,
@@ -36,6 +37,7 @@ import { Link, useLocation, useNavigate } from "react-router"
 const navItems = [
   { title: "Expenses", url: "/", icon: Receipt },
   { title: "Summary", url: "/summary", icon: BarChart3 },
+  { title: "EMIs", url: "/emis", icon: Landmark },
   { title: "Categories", url: "/categories", icon: Tag },
 ]
 

@@ -2,6 +2,7 @@ import { AppLayout } from "@/components/AppLayout"
 import { GuestRoute } from "@/components/GuestRoute"
 import { ProtectedRoute } from "@/components/ProtectedRoute"
 import CategoriesPage from "@/pages/CategoriesPage"
+import EmiPage from "@/pages/EmiPage"
 import ExpensesPage from "@/pages/ExpensesPage"
 import LoginPage from "@/pages/LoginPage"
 import SettingsPage from "@/pages/SettingsPage"
@@ -67,6 +68,16 @@ export function App() {
             <ProtectedRoute>
               <AppLayout>
                 <CategoriesPage />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/emis"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <EmiPage />
               </AppLayout>
             </ProtectedRoute>
           }

@@ -26,7 +26,7 @@ import {
 import { currencySymbol } from "@/lib/currency"
 import { cn } from "@/lib/utils"
 import { categoriesApi, type Category } from "@/services/categories"
-import { expensesApi, type Expense } from "@/services/expenses"
+import { expensesApi, type Expense, type QuickStats } from "@/services/expenses"
 import { useAuthStore } from "@/store/auth"
 import { format } from "date-fns"
 import {
@@ -35,6 +35,8 @@ import {
   ChevronRight,
   Receipt,
   Trash2,
+  TrendingUp,
+  Wallet,
 } from "lucide-react"
 import { useEffect, useState, type FormEvent } from "react"
 import { toast } from "sonner"
@@ -50,9 +52,16 @@ export default function ExpensesPage() {
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
   const PAGE_SIZE = 10
-  const [period, setPeriod] = useState<"today" | "week" | "month" | "year">(
-    "today"
-  )
+  const [period, setPeriod] = useState<
+    "today" | "week" | "month" | "year" | "custom"
+  >("today")
+
+  // custom date range
+  const [rangeFrom, setRangeFrom] = useState<Date | undefined>(undefined)
+  const [rangeTo, setRangeTo] = useState<Date | undefined>(undefined)
+
+  // quick stats
+  const [stats, setStats] = useState<QuickStats | null>(null)
 
   // form state
   const [amount, setAmount] = useState("")
@@ -61,9 +70,17 @@ export default function ExpensesPage() {
   const [date, setDate] = useState<Date | undefined>(new Date())
   const [submitting, setSubmitting] = useState(false)
 
-  async function fetchExpenses(p: number, per = period) {
+  async function fetchExpenses(
+    p: number,
+    per = period,
+    from?: Date,
+    to?: Date
+  ) {
     try {
-      const { data } = await expensesApi.list(p, PAGE_SIZE, per)
+      const df =
+        per === "custom" && from ? format(from, "yyyy-MM-dd") : undefined
+      const dt = per === "custom" && to ? format(to, "yyyy-MM-dd") : undefined
+      const { data } = await expensesApi.list(p, PAGE_SIZE, per, df, dt)
       setExpenses(data.items)
       setTotalPages(data.total_pages)
       setTotal(data.total)
@@ -73,11 +90,21 @@ export default function ExpensesPage() {
     }
   }
 
+  async function fetchStats() {
+    try {
+      const { data } = await expensesApi.quickStats()
+      setStats(data)
+    } catch {
+      /* silent */
+    }
+  }
+
   async function fetchData() {
     try {
       const [expRes, catRes] = await Promise.all([
         expensesApi.list(1, PAGE_SIZE, period),
         categoriesApi.list(),
+        fetchStats(),
       ])
       setExpenses(expRes.data.items)
       setTotalPages(expRes.data.total_pages)
@@ -99,7 +126,9 @@ export default function ExpensesPage() {
   }, [])
 
   useEffect(() => {
-    fetchExpenses(1, period)
+    if (period !== "custom") {
+      fetchExpenses(1, period)
+    }
   }, [period])
 
   async function handleSubmit(e: FormEvent) {
@@ -118,7 +147,7 @@ export default function ExpensesPage() {
       setDescription("")
       setCategoryId(categories.length > 0 ? categories[0].id : null)
       setDate(new Date())
-      await fetchExpenses(1)
+      await Promise.all([fetchExpenses(1), fetchStats()])
     } catch {
       toast.error("Failed to add expense")
     } finally {
@@ -130,7 +159,7 @@ export default function ExpensesPage() {
     try {
       await expensesApi.delete(id)
       toast.success("Expense deleted")
-      await fetchExpenses(page)
+      await Promise.all([fetchExpenses(page), fetchStats()])
     } catch {
       toast.error("Failed to delete expense")
     }
@@ -246,29 +275,104 @@ export default function ExpensesPage() {
         </CardContent>
       </Card>
 
+      {/* Quick stats */}
+      {stats && (
+        <div className="grid grid-cols-2 gap-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Today
+              </CardTitle>
+              <Wallet className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <p className="font-mono text-2xl font-bold tabular-nums">
+                {currencySymbol(currency)}
+                {stats.today_total.toFixed(2)}
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                This Month
+              </CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <p className="font-mono text-2xl font-bold tabular-nums">
+                {currencySymbol(currency)}
+                {stats.month_total.toFixed(2)}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle>
-            {period === "today"
-              ? "Today"
-              : period === "week"
-                ? "This Week"
-                : period === "month"
-                  ? "This Month"
-                  : "This Year"}
+            {period === "custom" && rangeFrom && rangeTo
+              ? `${format(rangeFrom, "MMM d")} — ${format(rangeTo, "MMM d, yyyy")}`
+              : period === "today"
+                ? "Today"
+                : period === "week"
+                  ? "This Week"
+                  : period === "month"
+                    ? "This Month"
+                    : "This Year"}
           </CardTitle>
-          <div className="flex gap-1">
-            {(["today", "week", "month", "year"] as const).map((p) => (
-              <Button
-                key={p}
-                variant={period === p ? "default" : "outline"}
-                size="sm"
-                onClick={() => setPeriod(p)}
-                className="text-xs capitalize"
+          <div className="flex items-center gap-2">
+            <div className="flex gap-1">
+              {(["today", "week", "month", "year"] as const).map((p) => (
+                <Button
+                  key={p}
+                  variant={period === p ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    setPeriod(p)
+                    setRangeFrom(undefined)
+                    setRangeTo(undefined)
+                  }}
+                  className="text-xs capitalize"
+                >
+                  {p}
+                </Button>
+              ))}
+            </div>
+            <Popover>
+              <PopoverTrigger
+                render={
+                  <Button
+                    variant={period === "custom" ? "default" : "outline"}
+                    size="sm"
+                    className="text-xs"
+                  />
+                }
               >
-                {p}
-              </Button>
-            ))}
+                <CalendarIcon className="mr-1 h-3.5 w-3.5" />
+                Range
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  mode="range"
+                  selected={
+                    rangeFrom && rangeTo
+                      ? { from: rangeFrom, to: rangeTo }
+                      : undefined
+                  }
+                  onSelect={(range) => {
+                    if (range?.from) setRangeFrom(range.from)
+                    if (range?.to) setRangeTo(range.to)
+                    if (range?.from && range?.to) {
+                      setPeriod("custom")
+                      fetchExpenses(1, "custom", range.from, range.to)
+                    }
+                  }}
+                  numberOfMonths={2}
+                />
+              </PopoverContent>
+            </Popover>
           </div>
         </CardHeader>
         <CardContent>
@@ -337,7 +441,9 @@ export default function ExpensesPage() {
                       variant="outline"
                       size="sm"
                       disabled={page <= 1}
-                      onClick={() => fetchExpenses(page - 1)}
+                      onClick={() =>
+                        fetchExpenses(page - 1, period, rangeFrom, rangeTo)
+                      }
                     >
                       <ChevronLeft className="mr-1 h-4 w-4" />
                       Previous
@@ -346,7 +452,9 @@ export default function ExpensesPage() {
                       variant="outline"
                       size="sm"
                       disabled={page >= totalPages}
-                      onClick={() => fetchExpenses(page + 1)}
+                      onClick={() =>
+                        fetchExpenses(page + 1, period, rangeFrom, rangeTo)
+                      }
                     >
                       Next
                       <ChevronRight className="ml-1 h-4 w-4" />

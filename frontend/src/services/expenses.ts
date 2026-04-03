@@ -26,11 +26,29 @@ export interface PaginatedExpenses {
   total_pages: number
 }
 
+export interface QuickStats {
+  today_total: number
+  month_total: number
+}
+
 export const expensesApi = {
-  list: (page = 1, pageSize = 10, period = "today") =>
+  list: (
+    page = 1,
+    pageSize = 10,
+    period = "today",
+    dateFrom?: string,
+    dateTo?: string
+  ) =>
     api.get<PaginatedExpenses>("/expenses", {
-      params: { page, page_size: pageSize, period },
+      params: {
+        page,
+        page_size: pageSize,
+        period,
+        ...(dateFrom && dateTo ? { date_from: dateFrom, date_to: dateTo } : {}),
+      },
     }),
+
+  quickStats: () => api.get<QuickStats>("/expenses/stats/quick"),
 
   create: (data: CreateExpensePayload) => api.post<Expense>("/expenses", data),
 
