@@ -1,4 +1,13 @@
 {
+  "builds": [
+    {
+      "src": "backend/main.py",
+      "use": "@vercel/python",
+      "config": {
+        "buildCommand": "cd backend && alembic upgrade head"
+      }
+    }
+  ],
   "experimentalServices": {
     "frontend": {
       "entrypoint": "frontend",
