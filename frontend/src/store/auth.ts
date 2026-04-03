@@ -15,7 +15,7 @@ interface AuthState {
   setCurrency: (currency: string) => Promise<void>
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isAuthenticated: !!localStorage.getItem("access_token"),
   isLoading: false,

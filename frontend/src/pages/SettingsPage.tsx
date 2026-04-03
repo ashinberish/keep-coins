@@ -19,7 +19,8 @@ export default function SettingsPage() {
   const currentCurrency = user?.currency ?? "USD"
   const CurrentIcon = currencyIcon(currentCurrency)
 
-  const handleCurrencyChange = async (value: string) => {
+  const handleCurrencyChange = async (value: string | null) => {
+    if (!value) return
     try {
       await setCurrency(value)
       toast.success(`Currency changed to ${value}`)
