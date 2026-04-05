@@ -14,25 +14,21 @@ class SummaryRepository:
     async def get_monthly_summary(
         self, user_id: uuid.UUID, year: int, month: int
     ) -> dict:
-        base = select(Expense).where(
+        month_filter = [
             Expense.user_id == user_id,
             extract("year", Expense.date) == year,
             extract("month", Expense.date) == month,
-        )
+        ]
 
-        # total
-        total_result = await self.db.execute(
-            select(func.coalesce(func.sum(Expense.amount), 0)).select_from(
-                base.subquery()
-            )
+        # total + count
+        stats_result = await self.db.execute(
+            select(
+                func.coalesce(func.sum(Expense.amount), 0),
+                func.count(Expense.id),
+            ).where(*month_filter)
         )
-        total = float(total_result.scalar_one())
-
-        # count
-        count_result = await self.db.execute(
-            select(func.count()).select_from(base.subquery())
-        )
-        count = count_result.scalar_one()
+        total, count = stats_result.one()
+        total = float(total)
 
         # by category
         by_category_result = await self.db.execute(

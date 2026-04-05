@@ -21,16 +21,16 @@ import { Bar, BarChart, Cell, Pie, PieChart, XAxis, YAxis } from "recharts"
 import { toast } from "sonner"
 
 const COLORS = [
-  "hsl(var(--chart-1))",
-  "hsl(var(--chart-2))",
-  "hsl(var(--chart-3))",
-  "hsl(var(--chart-4))",
-  "hsl(var(--chart-5))",
-  "hsl(210, 70%, 55%)",
-  "hsl(160, 60%, 45%)",
-  "hsl(30, 80%, 55%)",
-  "hsl(280, 60%, 55%)",
-  "hsl(0, 60%, 55%)",
+  "var(--chart-1)",
+  "var(--chart-2)",
+  "var(--chart-3)",
+  "var(--chart-4)",
+  "var(--chart-5)",
+  "oklch(0.65 0.15 210)",
+  "oklch(0.65 0.15 160)",
+  "oklch(0.65 0.15 30)",
+  "oklch(0.65 0.15 280)",
+  "oklch(0.65 0.15 0)",
 ]
 
 const MONTH_NAMES = [
@@ -99,7 +99,7 @@ export default function SummaryPage() {
   )
 
   const barConfig: ChartConfig = {
-    total: { label: "Amount", color: "hsl(var(--chart-1))" },
+    total: { label: "Amount", color: "var(--chart-1)" },
   }
 
   const avgPerDay =
