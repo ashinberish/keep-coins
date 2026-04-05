@@ -30,7 +30,6 @@ import {
   LogOut,
   Receipt,
   Settings,
-  Tag,
 } from "lucide-react"
 import { Link, useLocation, useNavigate } from "react-router"
 
@@ -38,7 +37,6 @@ const navItems = [
   { title: "Expenses", url: "/", icon: Receipt },
   { title: "Summary", url: "/summary", icon: BarChart3 },
   { title: "EMIs", url: "/emis", icon: Landmark },
-  { title: "Categories", url: "/categories", icon: Tag },
 ]
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -121,7 +119,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />
           <span className="text-sm font-medium">
-            {navItems.find((i) => i.url === pathname)?.title ?? ""}
+            {navItems.find((i) => i.url === pathname)?.title ??
+              (pathname === "/settings" ? "Settings" : "")}
           </span>
         </header>
         <main className="flex-1 p-6">{children}</main>

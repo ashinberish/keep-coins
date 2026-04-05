@@ -23,6 +23,7 @@ export interface UserResponse {
   username: string
   is_active: boolean
   currency: string
+  default_payment_method_id: string | null
   created_at: string
 }
 
@@ -35,4 +36,9 @@ export const authApi = {
 
   updateCurrency: (currency: string) =>
     api.patch<UserResponse>("/auth/me/currency", { currency }),
+
+  updateDefaultPaymentMethod: (id: string | null) =>
+    api.patch<UserResponse>("/auth/me/default-payment-method", {
+      default_payment_method_id: id,
+    }),
 }

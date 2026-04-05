@@ -16,6 +16,7 @@ class SummaryRepository:
     ) -> dict:
         month_filter = [
             Expense.user_id == user_id,
+            Expense.type == "expense",
             extract("year", Expense.date) == year,
             extract("month", Expense.date) == month,
         ]
@@ -41,6 +42,7 @@ class SummaryRepository:
             .join(Category, Expense.category_id == Category.id)
             .where(
                 Expense.user_id == user_id,
+                Expense.type == "expense",
                 extract("year", Expense.date) == year,
                 extract("month", Expense.date) == month,
             )
@@ -65,6 +67,7 @@ class SummaryRepository:
             )
             .where(
                 Expense.user_id == user_id,
+                Expense.type == "expense",
                 extract("year", Expense.date) == year,
                 extract("month", Expense.date) == month,
             )

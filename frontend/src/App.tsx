@@ -1,7 +1,6 @@
 import { AppLayout } from "@/components/AppLayout"
 import { GuestRoute } from "@/components/GuestRoute"
 import { ProtectedRoute } from "@/components/ProtectedRoute"
-import CategoriesPage from "@/pages/CategoriesPage"
 import EmiPage from "@/pages/EmiPage"
 import ExpensesPage from "@/pages/ExpensesPage"
 import LoginPage from "@/pages/LoginPage"
@@ -58,16 +57,6 @@ export function App() {
             <ProtectedRoute>
               <AppLayout>
                 <SummaryPage />
-              </AppLayout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/categories"
-          element={
-            <ProtectedRoute>
-              <AppLayout>
-                <CategoriesPage />
               </AppLayout>
             </ProtectedRoute>
           }

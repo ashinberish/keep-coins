@@ -27,6 +27,10 @@ import { currencySymbol } from "@/lib/currency"
 import { cn } from "@/lib/utils"
 import { categoriesApi, type Category } from "@/services/categories"
 import { expensesApi, type Expense, type QuickStats } from "@/services/expenses"
+import {
+  paymentMethodsApi,
+  type PaymentMethod,
+} from "@/services/payment-methods"
 import { useAuthStore } from "@/store/auth"
 import { format } from "date-fns"
 import {
@@ -44,8 +48,12 @@ import { toast } from "sonner"
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [categories, setCategories] = useState<Category[]>([])
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
   const [loading, setLoading] = useState(true)
   const currency = useAuthStore((s) => s.user?.currency ?? "USD")
+  const defaultPmId = useAuthStore(
+    (s) => s.user?.default_payment_method_id ?? null
+  )
 
   // pagination
   const [page, setPage] = useState(1)
@@ -65,7 +73,9 @@ export default function ExpensesPage() {
 
   // form state
   const [amount, setAmount] = useState("")
+  const [txnType, setTxnType] = useState<"expense" | "income">("expense")
   const [categoryId, setCategoryId] = useState<string | null>(null)
+  const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null)
   const [description, setDescription] = useState("")
   const [date, setDate] = useState<Date | undefined>(new Date())
   const [submitting, setSubmitting] = useState(false)
@@ -101,9 +111,10 @@ export default function ExpensesPage() {
 
   async function fetchData() {
     try {
-      const [expRes, catRes] = await Promise.all([
+      const [expRes, catRes, pmRes] = await Promise.all([
         expensesApi.list(1, PAGE_SIZE, period),
         categoriesApi.list(),
+        paymentMethodsApi.list(),
         fetchStats(),
       ])
       setExpenses(expRes.data.items)
@@ -111,8 +122,12 @@ export default function ExpensesPage() {
       setTotal(expRes.data.total)
       setPage(expRes.data.page)
       setCategories(catRes.data)
+      setPaymentMethods(pmRes.data)
       if (!categoryId && catRes.data.length > 0) {
         setCategoryId(catRes.data[0].id)
+      }
+      if (!paymentMethodId && defaultPmId) {
+        setPaymentMethodId(defaultPmId)
       }
     } catch {
       toast.error("Failed to load data")
@@ -138,14 +153,18 @@ export default function ExpensesPage() {
     try {
       await expensesApi.create({
         amount: parseFloat(amount),
+        type: txnType,
         category_id: categoryId,
         description: description || undefined,
         date: format(date, "yyyy-MM-dd"),
+        payment_method_id: paymentMethodId || undefined,
       })
-      toast.success("Expense added")
+      toast.success(txnType === "income" ? "Income added" : "Expense added")
       setAmount("")
+      setTxnType("expense")
       setDescription("")
       setCategoryId(categories.length > 0 ? categories[0].id : null)
+      setPaymentMethodId(defaultPmId)
       setDate(new Date())
       await Promise.all([fetchExpenses(1), fetchStats()])
     } catch {
@@ -170,6 +189,36 @@ export default function ExpensesPage() {
       <Card>
         <CardContent className="pt-6">
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Type toggle */}
+            <div className="flex items-center justify-center">
+              <div className="inline-flex rounded-lg bg-muted p-1">
+                <button
+                  type="button"
+                  className={cn(
+                    "rounded-md px-4 py-1.5 text-sm font-medium transition-colors",
+                    txnType === "expense"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                  onClick={() => setTxnType("expense")}
+                >
+                  Expense
+                </button>
+                <button
+                  type="button"
+                  className={cn(
+                    "rounded-md px-4 py-1.5 text-sm font-medium transition-colors",
+                    txnType === "income"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                  onClick={() => setTxnType("income")}
+                >
+                  Income
+                </button>
+              </div>
+            </div>
+
             {/* Amount — hero input */}
             <div className="flex items-center justify-center gap-1 py-4">
               <span className="font-mono text-4xl font-light text-muted-foreground">
@@ -191,7 +240,7 @@ export default function ExpensesPage() {
             </div>
 
             {/* Secondary fields row */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-5">
               <div className="grid gap-1.5">
                 <Label className="text-xs tracking-wider text-muted-foreground uppercase">
                   Category
@@ -260,6 +309,36 @@ export default function ExpensesPage() {
               </div>
               <div className="grid gap-1.5">
                 <Label className="text-xs tracking-wider text-muted-foreground uppercase">
+                  Payment Method
+                </Label>
+                <Select
+                  value={paymentMethodId}
+                  onValueChange={setPaymentMethodId}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="None">
+                      {paymentMethodId
+                        ? (() => {
+                            const pm = paymentMethods.find(
+                              (p) => p.id === paymentMethodId
+                            )
+                            return pm ? `${pm.icon} ${pm.name}` : null
+                          })()
+                        : "None"}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent alignItemWithTrigger={false}>
+                    {paymentMethods.map((pm) => (
+                      <SelectItem key={pm.id} value={pm.id}>
+                        <span className="mr-2">{pm.icon}</span>
+                        {pm.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-1.5">
+                <Label className="text-xs tracking-wider text-muted-foreground uppercase">
                   &nbsp;
                 </Label>
                 <Button
@@ -267,7 +346,11 @@ export default function ExpensesPage() {
                   className="w-full"
                   disabled={submitting || !amount || !categoryId}
                 >
-                  {submitting ? "Adding…" : "Add Expense"}
+                  {submitting
+                    ? "Adding…"
+                    : txnType === "income"
+                      ? "Add Income"
+                      : "Add Expense"}
                 </Button>
               </div>
             </div>
@@ -393,8 +476,10 @@ export default function ExpensesPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Date</TableHead>
+                    <TableHead>Type</TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead>Description</TableHead>
+                    <TableHead>Payment</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
                     <TableHead className="w-12" />
                   </TableRow>
@@ -403,6 +488,18 @@ export default function ExpensesPage() {
                   {expenses.map((expense) => (
                     <TableRow key={expense.id}>
                       <TableCell>{expense.date}</TableCell>
+                      <TableCell>
+                        <span
+                          className={cn(
+                            "inline-flex rounded-full px-2 py-0.5 text-xs font-medium",
+                            expense.type === "income"
+                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                              : "bg-red-500/10 text-red-600 dark:text-red-400"
+                          )}
+                        >
+                          {expense.type === "income" ? "Income" : "Expense"}
+                        </span>
+                      </TableCell>
                       <TableCell>
                         {(() => {
                           const cat = categories.find(
@@ -414,7 +511,18 @@ export default function ExpensesPage() {
                         })()}
                       </TableCell>
                       <TableCell>{expense.description ?? "—"}</TableCell>
-                      <TableCell className="text-right font-mono font-medium tabular-nums">
+                      <TableCell>
+                        {expense.payment_method_name ?? "—"}
+                      </TableCell>
+                      <TableCell
+                        className={cn(
+                          "text-right font-mono font-medium tabular-nums",
+                          expense.type === "income"
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : ""
+                        )}
+                      >
+                        {expense.type === "income" ? "+" : "-"}
                         {currencySymbol(currency)}
                         {parseFloat(expense.amount).toFixed(2)}
                       </TableCell>

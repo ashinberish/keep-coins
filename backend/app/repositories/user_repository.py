@@ -33,3 +33,11 @@ class UserRepository:
         await self.db.commit()
         await self.db.refresh(user)
         return user
+
+    async def update_default_payment_method(
+        self, user: User, payment_method_id: "uuid.UUID | None"
+    ) -> User:
+        user.default_payment_method_id = payment_method_id
+        await self.db.commit()
+        await self.db.refresh(user)
+        return user

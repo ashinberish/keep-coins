@@ -13,6 +13,7 @@ interface AuthState {
   fetchUser: () => Promise<void>
   clearError: () => void
   setCurrency: (currency: string) => Promise<void>
+  setDefaultPaymentMethod: (id: string | null) => Promise<void>
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -71,6 +72,11 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   setCurrency: async (currency) => {
     const { data } = await authApi.updateCurrency(currency)
+    set({ user: data })
+  },
+
+  setDefaultPaymentMethod: async (id) => {
+    const { data } = await authApi.updateDefaultPaymentMethod(id)
     set({ user: data })
   },
 

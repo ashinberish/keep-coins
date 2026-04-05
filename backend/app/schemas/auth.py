@@ -30,6 +30,7 @@ class UserResponse(BaseModel):
     username: str
     is_active: bool
     currency: str = "USD"
+    default_payment_method_id: uuid.UUID | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -37,6 +38,10 @@ class UserResponse(BaseModel):
 
 class UpdateCurrencyRequest(BaseModel):
     currency: str
+
+
+class UpdateDefaultPaymentMethodRequest(BaseModel):
+    default_payment_method_id: uuid.UUID | None = None
 
 
 class TokenResponse(BaseModel):

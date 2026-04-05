@@ -83,9 +83,11 @@ async def create_expense(
         user_id=expense.user_id,
         category_id=expense.category_id,
         amount=expense.amount,
+        type=expense.type,
         description=expense.description,
         date=expense.date,
         created_at=expense.created_at,
+        payment_method_id=expense.payment_method_id,
     )
 
 
@@ -105,9 +107,11 @@ async def update_expense(
         user_id=expense.user_id,
         category_id=expense.category_id,
         amount=expense.amount,
+        type=expense.type,
         description=expense.description,
         date=expense.date,
         created_at=expense.created_at,
+        payment_method_id=expense.payment_method_id,
     )
 
 

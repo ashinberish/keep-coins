@@ -9,6 +9,7 @@ from app.schemas.auth import (
     RefreshTokenRequest,
     TokenResponse,
     UpdateCurrencyRequest,
+    UpdateDefaultPaymentMethodRequest,
     UserCreate,
     UserLogin,
     UserResponse,
@@ -50,3 +51,15 @@ async def update_currency(
 ):
     repo = UserRepository(db)
     return await repo.update_currency(current_user, data.currency)
+
+
+@router.patch("/me/default-payment-method", response_model=UserResponse)
+async def update_default_payment_method(
+    data: UpdateDefaultPaymentMethodRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    repo = UserRepository(db)
+    return await repo.update_default_payment_method(
+        current_user, data.default_payment_method_id
+    )

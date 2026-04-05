@@ -5,17 +5,22 @@ export interface Expense {
   user_id: string
   category_id: string
   amount: string
+  type: "expense" | "income"
   description: string | null
   date: string
   created_at: string
   category_name: string | null
+  payment_method_id: string | null
+  payment_method_name: string | null
 }
 
 export interface CreateExpensePayload {
   category_id: string
   amount: number
+  type?: "expense" | "income"
   description?: string
   date: string
+  payment_method_id?: string
 }
 
 export interface PaginatedExpenses {
