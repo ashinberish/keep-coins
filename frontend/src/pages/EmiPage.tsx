@@ -13,8 +13,18 @@ import { cn } from "@/lib/utils"
 import { emisApi, type Emi, type Installment } from "@/services/emis"
 import { useAuthStore } from "@/store/auth"
 import { format } from "date-fns"
-import { CalendarIcon, Check, Landmark, Plus, Trash2, X } from "lucide-react"
-import { useEffect, useState, type FormEvent } from "react"
+import {
+  CalendarClock,
+  CalendarIcon,
+  Check,
+  CreditCard,
+  Landmark,
+  Plus,
+  Trash2,
+  TrendingDown,
+  X,
+} from "lucide-react"
+import { useEffect, useMemo, useState, type FormEvent } from "react"
 import { toast } from "sonner"
 
 export default function EmiPage() {
@@ -34,6 +44,40 @@ export default function EmiPage() {
   // editing installment amount
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editAmount, setEditAmount] = useState("")
+
+  // summary stats
+  const summary = useMemo(() => {
+    const now = new Date()
+    const thisMonth = now.getMonth()
+    const thisYear = now.getFullYear()
+    let nextMonth = thisMonth + 1
+    let nextYear = thisYear
+    if (nextMonth > 11) {
+      nextMonth = 0
+      nextYear++
+    }
+
+    let thisMonthDue = 0
+    let nextMonthDue = 0
+    let totalDebt = 0
+
+    for (const emi of emis) {
+      for (const inst of emi.installments) {
+        if (!inst.is_paid) {
+          const due = new Date(inst.due_date + "T00:00:00")
+          totalDebt += inst.amount
+          if (due.getMonth() === thisMonth && due.getFullYear() === thisYear) {
+            thisMonthDue += inst.amount
+          }
+          if (due.getMonth() === nextMonth && due.getFullYear() === nextYear) {
+            nextMonthDue += inst.amount
+          }
+        }
+      }
+    }
+
+    return { totalEmis: emis.length, thisMonthDue, nextMonthDue, totalDebt }
+  }, [emis])
 
   async function fetchEmis() {
     try {
@@ -143,6 +187,65 @@ export default function EmiPage() {
           Add EMI
         </Button>
       </div>
+
+      {/* Summary Cards */}
+      {!loading && emis.length > 0 && (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <Card>
+            <CardContent className="flex items-center gap-3 pt-6">
+              <div className="rounded-lg bg-primary/10 p-2">
+                <CreditCard className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Active EMIs</p>
+                <p className="text-xl font-bold">{summary.totalEmis}</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center gap-3 pt-6">
+              <div className="rounded-lg bg-orange-500/10 p-2">
+                <CalendarClock className="h-5 w-5 text-orange-500" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Due This Month</p>
+                <p className="text-xl font-bold">
+                  {sym}
+                  {summary.thisMonthDue.toFixed(2)}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center gap-3 pt-6">
+              <div className="rounded-lg bg-blue-500/10 p-2">
+                <CalendarIcon className="h-5 w-5 text-blue-500" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Due Next Month</p>
+                <p className="text-xl font-bold">
+                  {sym}
+                  {summary.nextMonthDue.toFixed(2)}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center gap-3 pt-6">
+              <div className="rounded-lg bg-red-500/10 p-2">
+                <TrendingDown className="h-5 w-5 text-red-500" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Total Debt</p>
+                <p className="text-xl font-bold">
+                  {sym}
+                  {summary.totalDebt.toFixed(2)}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Create form */}
       {showForm && (
