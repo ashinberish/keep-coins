@@ -16,6 +16,14 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
+import {
   Table,
   TableBody,
   TableCell,
@@ -37,6 +45,7 @@ import {
   CalendarIcon,
   ChevronLeft,
   ChevronRight,
+  Pencil,
   Receipt,
   Trash2,
   TrendingUp,
@@ -181,6 +190,54 @@ export default function ExpensesPage() {
       await Promise.all([fetchExpenses(page), fetchStats()])
     } catch {
       toast.error("Failed to delete expense")
+    }
+  }
+
+  // edit sheet state
+  const [editOpen, setEditOpen] = useState(false)
+  const [editExpense, setEditExpense] = useState<Expense | null>(null)
+  const [editAmount, setEditAmount] = useState("")
+  const [editType, setEditType] = useState<"expense" | "income">("expense")
+  const [editCategoryId, setEditCategoryId] = useState<string | null>(null)
+  const [editPmId, setEditPmId] = useState<string | null>(null)
+  const [editDescription, setEditDescription] = useState("")
+  const [editDate, setEditDate] = useState<Date | undefined>(undefined)
+  const [editSubmitting, setEditSubmitting] = useState(false)
+
+  function openEdit(exp: Expense) {
+    setEditExpense(exp)
+    setEditAmount(parseFloat(exp.amount).toString())
+    setEditType(exp.type)
+    setEditCategoryId(exp.category_id)
+    setEditPmId(exp.payment_method_id)
+    setEditDescription(exp.description ?? "")
+    setEditDate(new Date(exp.date + "T00:00:00"))
+    setEditOpen(true)
+  }
+
+  async function handleEditSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (!editExpense || !editAmount || !editCategoryId || !editDate) return
+    setEditSubmitting(true)
+    try {
+      await expensesApi.update(editExpense.id, {
+        amount: parseFloat(editAmount),
+        type: editType,
+        category_id: editCategoryId,
+        description: editDescription || undefined,
+        date: format(editDate, "yyyy-MM-dd"),
+        payment_method_id: editPmId || undefined,
+      })
+      toast.success("Expense updated")
+      setEditOpen(false)
+      await Promise.all([
+        fetchExpenses(page, period, rangeFrom, rangeTo),
+        fetchStats(),
+      ])
+    } catch {
+      toast.error("Failed to update expense")
+    } finally {
+      setEditSubmitting(false)
     }
   }
 
@@ -481,7 +538,7 @@ export default function ExpensesPage() {
                     <TableHead>Description</TableHead>
                     <TableHead>Payment</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
-                    <TableHead className="w-12" />
+                    <TableHead className="w-20" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -527,13 +584,22 @@ export default function ExpensesPage() {
                         {parseFloat(expense.amount).toFixed(2)}
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(expense.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openEdit(expense)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(expense.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -574,6 +640,158 @@ export default function ExpensesPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit Sheet */}
+      <Sheet open={editOpen} onOpenChange={setEditOpen}>
+        <SheetContent side="right">
+          <SheetHeader>
+            <SheetTitle>Edit Transaction</SheetTitle>
+            <SheetDescription>
+              Update the details below and save.
+            </SheetDescription>
+          </SheetHeader>
+          <form
+            onSubmit={handleEditSubmit}
+            className="flex flex-1 flex-col gap-4 overflow-y-auto px-4"
+          >
+            <div className="grid gap-1.5">
+              <Label>Type</Label>
+              <div className="inline-flex rounded-lg bg-muted p-1">
+                <button
+                  type="button"
+                  className={cn(
+                    "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                    editType === "expense"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                  onClick={() => setEditType("expense")}
+                >
+                  Expense
+                </button>
+                <button
+                  type="button"
+                  className={cn(
+                    "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                    editType === "income"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                  onClick={() => setEditType("income")}
+                >
+                  Income
+                </button>
+              </div>
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Amount</Label>
+              <Input
+                type="text"
+                inputMode="decimal"
+                value={editAmount}
+                onChange={(e) => {
+                  const v = e.target.value
+                  if (v === "" || /^\d*\.?\d{0,2}$/.test(v)) setEditAmount(v)
+                }}
+                required
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Category</Label>
+              <Select value={editCategoryId} onValueChange={setEditCategoryId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select category">
+                    {editCategoryId
+                      ? (() => {
+                          const cat = categories.find(
+                            (c) => c.id === editCategoryId
+                          )
+                          return cat ? `${cat.emoji} ${cat.name}` : null
+                        })()
+                      : null}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent alignItemWithTrigger={false}>
+                  {categories.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      <span className="mr-2">{c.emoji}</span>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Date</Label>
+              <Popover>
+                <PopoverTrigger
+                  render={
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "h-9 w-full justify-start text-left font-normal",
+                        !editDate && "text-muted-foreground"
+                      )}
+                    />
+                  }
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {editDate ? format(editDate, "PPP") : "Pick a date"}
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={editDate}
+                    onSelect={setEditDate}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Description</Label>
+              <Input
+                placeholder="What was it for?"
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Payment Method</Label>
+              <Select value={editPmId} onValueChange={setEditPmId}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="None">
+                    {editPmId
+                      ? (() => {
+                          const pm = paymentMethods.find(
+                            (p) => p.id === editPmId
+                          )
+                          return pm ? `${pm.icon} ${pm.name}` : null
+                        })()
+                      : "None"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent alignItemWithTrigger={false}>
+                  {paymentMethods.map((pm) => (
+                    <SelectItem key={pm.id} value={pm.id}>
+                      <span className="mr-2">{pm.icon}</span>
+                      {pm.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <SheetFooter>
+              <Button
+                type="submit"
+                disabled={editSubmitting || !editAmount || !editCategoryId}
+              >
+                {editSubmitting ? "Saving…" : "Save Changes"}
+              </Button>
+            </SheetFooter>
+          </form>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }
