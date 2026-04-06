@@ -10,6 +10,7 @@ from app.schemas.auth import (
     TokenResponse,
     UpdateCurrencyRequest,
     UpdateDefaultPaymentMethodRequest,
+    UpdateUsernameRequest,
     UserCreate,
     UserLogin,
     UserResponse,
@@ -63,3 +64,32 @@ async def update_default_payment_method(
     return await repo.update_default_payment_method(
         current_user, data.default_payment_method_id
     )
+
+
+@router.patch("/me/username", response_model=UserResponse)
+async def update_username(
+    data: UpdateUsernameRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from fastapi import HTTPException
+    from fastapi import status as http_status
+
+    repo = UserRepository(db)
+    existing = await repo.get_by_username(data.username)
+    if existing and existing.id != current_user.id:
+        raise HTTPException(
+            status_code=http_status.HTTP_409_CONFLICT,
+            detail="Username already taken",
+        )
+    return await repo.update_username(current_user, data.username)
+
+
+@router.delete("/me", status_code=204)
+async def delete_account(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    repo = UserRepository(db)
+    await repo.soft_delete(current_user)
+    return None

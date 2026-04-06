@@ -43,6 +43,8 @@ async def list_expenses(
     service = ExpenseService(db)
     if date_from and date_to:
         df, dt = date_from, date_to
+    elif period == "all":
+        df, dt = None, None
     else:
         df, dt = _period_range(period)
     items, total = await service.list_expenses(current_user.id, page, page_size, df, dt)
@@ -67,7 +69,14 @@ async def quick_stats(
     month_start = today.replace(day=1)
     today_total = await service.total_for_range(current_user.id, today, today)
     month_total = await service.total_for_range(current_user.id, month_start, today)
-    return {"today_total": float(today_total), "month_total": float(month_total)}
+    today_income = await service.income_for_range(current_user.id, today, today)
+    month_income = await service.income_for_range(current_user.id, month_start, today)
+    return {
+        "today_total": float(today_total),
+        "month_total": float(month_total),
+        "today_income": float(today_income),
+        "month_income": float(month_income),
+    }
 
 
 @router.post("", response_model=ExpenseResponse, status_code=201)

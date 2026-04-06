@@ -98,3 +98,16 @@ class ExpenseRepository:
             )
         )
         return result.scalar_one()
+
+    async def income_for_range(
+        self, user_id: uuid.UUID, date_from: date, date_to: date
+    ) -> float:
+        result = await self.db.execute(
+            select(func.coalesce(func.sum(Expense.amount), 0)).where(
+                Expense.user_id == user_id,
+                Expense.type == "income",
+                Expense.date >= date_from,
+                Expense.date <= date_to,
+            )
+        )
+        return result.scalar_one()

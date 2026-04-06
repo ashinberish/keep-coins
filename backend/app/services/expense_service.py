@@ -61,3 +61,8 @@ class ExpenseService:
         self, user_id: uuid.UUID, date_from: date, date_to: date
     ) -> float:
         return await self.repo.total_for_range(user_id, date_from, date_to)
+
+    async def income_for_range(
+        self, user_id: uuid.UUID, date_from: date, date_to: date
+    ) -> float:
+        return await self.repo.income_for_range(user_id, date_from, date_to)

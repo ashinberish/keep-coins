@@ -31,6 +31,19 @@ class SummaryRepository:
         total, count = stats_result.one()
         total = float(total)
 
+        # income total
+        income_result = await self.db.execute(
+            select(
+                func.coalesce(func.sum(Expense.amount), 0),
+            ).where(
+                Expense.user_id == user_id,
+                Expense.type == "income",
+                extract("year", Expense.date) == year,
+                extract("month", Expense.date) == month,
+            )
+        )
+        income_total = float(income_result.scalar_one())
+
         # by category
         by_category_result = await self.db.execute(
             select(
@@ -83,6 +96,7 @@ class SummaryRepository:
             "year": year,
             "month": month,
             "total": total,
+            "income_total": income_total,
             "count": count,
             "by_category": by_category,
             "daily": daily,

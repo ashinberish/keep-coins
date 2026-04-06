@@ -41,4 +41,9 @@ export const authApi = {
     api.patch<UserResponse>("/auth/me/default-payment-method", {
       default_payment_method_id: id,
     }),
+
+  updateUsername: (username: string) =>
+    api.patch<UserResponse>("/auth/me/username", { username }),
+
+  deleteAccount: () => api.delete("/auth/me"),
 }

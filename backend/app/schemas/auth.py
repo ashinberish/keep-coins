@@ -44,6 +44,10 @@ class UpdateDefaultPaymentMethodRequest(BaseModel):
     default_payment_method_id: uuid.UUID | None = None
 
 
+class UpdateUsernameRequest(BaseModel):
+    username: str
+
+
 class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str

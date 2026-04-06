@@ -1,6 +1,14 @@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -92,9 +100,25 @@ const PM_ICON_OPTIONS = [
 ]
 
 export default function SettingsPage() {
-  const { user, setCurrency, setDefaultPaymentMethod } = useAuthStore()
+  const {
+    user,
+    setCurrency,
+    setDefaultPaymentMethod,
+    updateUsername,
+    deleteAccount,
+  } = useAuthStore()
   const currentCurrency = user?.currency ?? "USD"
   const CurrentIcon = currencyIcon(currentCurrency)
+
+  // Username edit state
+  const [editingUsername, setEditingUsername] = useState(false)
+  const [newUsername, setNewUsername] = useState("")
+  const [usernameSaving, setUsernameSaving] = useState(false)
+
+  // Delete account dialog state
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState("")
+  const [deleting, setDeleting] = useState(false)
 
   // Categories state
   const [categories, setCategories] = useState<Category[]>([])
@@ -253,11 +277,60 @@ export default function SettingsPage() {
           </div>
           <div className="grid gap-1.5">
             <Label>Username</Label>
-            <Input value={user?.username ?? ""} disabled />
+            {editingUsername ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  value={newUsername}
+                  onChange={(e) => setNewUsername(e.target.value)}
+                  placeholder="New username"
+                  autoFocus
+                />
+                <Button
+                  size="sm"
+                  disabled={usernameSaving || !newUsername.trim()}
+                  onClick={async () => {
+                    setUsernameSaving(true)
+                    try {
+                      await updateUsername(newUsername.trim())
+                      toast.success("Username updated")
+                      setEditingUsername(false)
+                    } catch (err: unknown) {
+                      const message =
+                        (err as { response?: { data?: { detail?: string } } })
+                          ?.response?.data?.detail ??
+                        "Failed to update username"
+                      toast.error(message)
+                    } finally {
+                      setUsernameSaving(false)
+                    }
+                  }}
+                >
+                  {usernameSaving ? "Saving…" : "Save"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setEditingUsername(false)}
+                >
+                  Cancel
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Input value={user?.username ?? ""} disabled />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setNewUsername(user?.username ?? "")
+                    setEditingUsername(true)
+                  }}
+                >
+                  Edit
+                </Button>
+              </div>
+            )}
           </div>
-          <p className="text-xs text-muted-foreground">
-            Profile editing is not yet available.
-          </p>
         </CardContent>
       </Card>
 
@@ -555,14 +628,64 @@ export default function SettingsPage() {
           <div>
             <p className="text-sm font-medium text-destructive">Danger Zone</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Account deletion is not yet available.
+              This will permanently deactivate your account. All your data will
+              be preserved but you will no longer be able to log in.
             </p>
-            <Button variant="destructive" size="sm" className="mt-3" disabled>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="mt-3"
+              onClick={() => {
+                setDeleteConfirm("")
+                setDeleteOpen(true)
+              }}
+            >
               Delete Account
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      {/* Delete account confirmation dialog */}
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Account</DialogTitle>
+            <DialogDescription>
+              This action cannot be undone. Type{" "}
+              <span className="font-semibold text-destructive">delete</span>{" "}
+              below to confirm.
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            placeholder='Type "delete" to confirm'
+            value={deleteConfirm}
+            onChange={(e) => setDeleteConfirm(e.target.value)}
+            autoFocus
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleteConfirm !== "delete" || deleting}
+              onClick={async () => {
+                setDeleting(true)
+                try {
+                  await deleteAccount()
+                  toast.success("Account deleted")
+                } catch {
+                  toast.error("Failed to delete account")
+                  setDeleting(false)
+                }
+              }}
+            >
+              {deleting ? "Deleting…" : "Delete Account"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -17,6 +17,7 @@ class MonthlySummaryResponse(BaseModel):
     year: int
     month: int
     total: float
+    income_total: float
     count: int
     by_category: list[CategorySummary]
     daily: list[DailySummary]

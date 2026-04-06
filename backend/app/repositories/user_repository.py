@@ -41,3 +41,13 @@ class UserRepository:
         await self.db.commit()
         await self.db.refresh(user)
         return user
+
+    async def update_username(self, user: User, username: str) -> User:
+        user.username = username
+        await self.db.commit()
+        await self.db.refresh(user)
+        return user
+
+    async def soft_delete(self, user: User) -> None:
+        user.is_active = False
+        await self.db.commit()

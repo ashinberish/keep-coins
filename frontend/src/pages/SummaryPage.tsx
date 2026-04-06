@@ -6,10 +6,11 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart"
-import { currencySymbol } from "@/lib/currency"
+import { currencySymbol, formatAmount } from "@/lib/currency"
 import { summaryApi, type MonthlySummary } from "@/services/summary"
 import { useAuthStore } from "@/store/auth"
 import {
+  ArrowDownLeft,
   ChevronLeft,
   ChevronRight,
   DollarSign,
@@ -55,6 +56,7 @@ export default function SummaryPage() {
   const [data, setData] = useState<MonthlySummary | null>(null)
   const currency = useAuthStore((s) => s.user?.currency ?? "USD")
   const sym = currencySymbol(currency)
+  const cur = currency
   const [loading, setLoading] = useState(true)
 
   async function fetchSummary(y: number, m: number) {
@@ -139,7 +141,7 @@ export default function SummaryPage() {
       ) : (
         <>
           {/* Stats cards */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -150,7 +152,21 @@ export default function SummaryPage() {
               <CardContent>
                 <p className="font-mono text-2xl font-bold tabular-nums">
                   {sym}
-                  {data.total.toFixed(2)}
+                  {formatAmount(data.total, cur)}
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total Income
+                </CardTitle>
+                <ArrowDownLeft className="h-4 w-4 text-emerald-500" />
+              </CardHeader>
+              <CardContent>
+                <p className="font-mono text-2xl font-bold text-emerald-600 tabular-nums dark:text-emerald-400">
+                  {sym}
+                  {formatAmount(data.income_total, cur)}
                 </p>
               </CardContent>
             </Card>
@@ -177,7 +193,7 @@ export default function SummaryPage() {
               <CardContent>
                 <p className="font-mono text-2xl font-bold tabular-nums">
                   {sym}
-                  {avgPerDay.toFixed(2)}
+                  {formatAmount(avgPerDay, cur)}
                 </p>
               </CardContent>
             </Card>
@@ -232,7 +248,7 @@ export default function SummaryPage() {
                       </div>
                       <span className="font-mono font-medium tabular-nums">
                         {sym}
-                        {c.total.toFixed(2)}
+                        {formatAmount(c.total, cur)}
                       </span>
                     </div>
                   ))}

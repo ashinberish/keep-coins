@@ -31,7 +31,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { currencySymbol } from "@/lib/currency"
+import {
+  currencySymbol,
+  formatAmount,
+  formatInputAmount,
+  stripFormatting,
+} from "@/lib/currency"
 import { cn } from "@/lib/utils"
 import { categoriesApi, type Category } from "@/services/categories"
 import { expensesApi, type Expense, type QuickStats } from "@/services/expenses"
@@ -70,8 +75,8 @@ export default function ExpensesPage() {
   const [total, setTotal] = useState(0)
   const PAGE_SIZE = 10
   const [period, setPeriod] = useState<
-    "today" | "week" | "month" | "year" | "custom"
-  >("today")
+    "all" | "today" | "week" | "month" | "year" | "custom"
+  >("all")
 
   // custom date range
   const [rangeFrom, setRangeFrom] = useState<Date | undefined>(undefined)
@@ -161,7 +166,7 @@ export default function ExpensesPage() {
     setSubmitting(true)
     try {
       await expensesApi.create({
-        amount: parseFloat(amount),
+        amount: parseFloat(stripFormatting(amount, currency)),
         type: txnType,
         category_id: categoryId,
         description: description || undefined,
@@ -206,7 +211,9 @@ export default function ExpensesPage() {
 
   function openEdit(exp: Expense) {
     setEditExpense(exp)
-    setEditAmount(parseFloat(exp.amount).toString())
+    setEditAmount(
+      formatInputAmount(parseFloat(exp.amount).toString(), currency) ?? ""
+    )
     setEditType(exp.type)
     setEditCategoryId(exp.category_id)
     setEditPmId(exp.payment_method_id)
@@ -221,7 +228,7 @@ export default function ExpensesPage() {
     setEditSubmitting(true)
     try {
       await expensesApi.update(editExpense.id, {
-        amount: parseFloat(editAmount),
+        amount: parseFloat(stripFormatting(editAmount, currency)),
         type: editType,
         category_id: editCategoryId,
         description: editDescription || undefined,
@@ -287,8 +294,9 @@ export default function ExpensesPage() {
                 placeholder="0.00"
                 value={amount}
                 onChange={(e) => {
-                  const v = e.target.value
-                  if (v === "" || /^\d*\.?\d{0,2}$/.test(v)) setAmount(v)
+                  const raw = stripFormatting(e.target.value, currency)
+                  const formatted = formatInputAmount(raw, currency)
+                  if (formatted !== null) setAmount(formatted)
                 }}
                 className="w-48 border-none bg-transparent text-center font-mono text-5xl font-semibold tracking-tight outline-none placeholder:text-muted-foreground/40"
                 required
@@ -417,32 +425,60 @@ export default function ExpensesPage() {
 
       {/* Quick stats */}
       {stats && (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Today
+                Today Spent
               </CardTitle>
               <Wallet className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <p className="font-mono text-2xl font-bold tabular-nums">
                 {currencySymbol(currency)}
-                {stats.today_total.toFixed(2)}
+                {formatAmount(stats.today_total, currency)}
               </p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                This Month
+                Today Income
               </CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <TrendingUp className="h-4 w-4 text-emerald-500" />
+            </CardHeader>
+            <CardContent>
+              <p className="font-mono text-2xl font-bold text-emerald-600 tabular-nums dark:text-emerald-400">
+                {currencySymbol(currency)}
+                {formatAmount(stats.today_income, currency)}
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Month Spent
+              </CardTitle>
+              <Wallet className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <p className="font-mono text-2xl font-bold tabular-nums">
                 {currencySymbol(currency)}
-                {stats.month_total.toFixed(2)}
+                {formatAmount(stats.month_total, currency)}
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Month Income
+              </CardTitle>
+              <TrendingUp className="h-4 w-4 text-emerald-500" />
+            </CardHeader>
+            <CardContent>
+              <p className="font-mono text-2xl font-bold text-emerald-600 tabular-nums dark:text-emerald-400">
+                {currencySymbol(currency)}
+                {formatAmount(stats.month_income, currency)}
               </p>
             </CardContent>
           </Card>
@@ -454,17 +490,24 @@ export default function ExpensesPage() {
           <CardTitle>
             {period === "custom" && rangeFrom && rangeTo
               ? `${format(rangeFrom, "MMM d")} — ${format(rangeTo, "MMM d, yyyy")}`
-              : period === "today"
-                ? "Today"
-                : period === "week"
-                  ? "This Week"
-                  : period === "month"
-                    ? "This Month"
-                    : "This Year"}
+              : period === "all"
+                ? "Last Transactions"
+                : period === "today"
+                  ? "Today"
+                  : period === "week"
+                    ? "This Week"
+                    : period === "month"
+                      ? "This Month"
+                      : "This Year"}
+            {total > 0 && (
+              <span className="ml-2 text-sm font-normal text-muted-foreground">
+                ({total})
+              </span>
+            )}
           </CardTitle>
           <div className="flex items-center gap-2">
             <div className="flex gap-1">
-              {(["today", "week", "month", "year"] as const).map((p) => (
+              {(["all", "today", "week", "month", "year"] as const).map((p) => (
                 <Button
                   key={p}
                   variant={period === p ? "default" : "outline"}
@@ -491,7 +534,9 @@ export default function ExpensesPage() {
                 }
               >
                 <CalendarIcon className="mr-1 h-3.5 w-3.5" />
-                Range
+                {period === "custom" && rangeFrom && rangeTo
+                  ? `${format(rangeFrom, "MMM d")} — ${format(rangeTo, "MMM d, yyyy")}`
+                  : "Range"}
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="end">
                 <Calendar
@@ -581,7 +626,7 @@ export default function ExpensesPage() {
                       >
                         {expense.type === "income" ? "+" : "-"}
                         {currencySymbol(currency)}
-                        {parseFloat(expense.amount).toFixed(2)}
+                        {formatAmount(parseFloat(expense.amount), currency)}
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
@@ -690,8 +735,9 @@ export default function ExpensesPage() {
                 inputMode="decimal"
                 value={editAmount}
                 onChange={(e) => {
-                  const v = e.target.value
-                  if (v === "" || /^\d*\.?\d{0,2}$/.test(v)) setEditAmount(v)
+                  const raw = stripFormatting(e.target.value, currency)
+                  const formatted = formatInputAmount(raw, currency)
+                  if (formatted !== null) setEditAmount(formatted)
                 }}
                 required
               />

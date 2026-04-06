@@ -16,6 +16,7 @@ export interface MonthlySummary {
   year: number
   month: number
   total: number
+  income_total: number
   count: number
   by_category: CategorySummary[]
   daily: DailySummary[]

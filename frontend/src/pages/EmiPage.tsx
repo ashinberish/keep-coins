@@ -8,7 +8,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { currencySymbol } from "@/lib/currency"
+import { currencySymbol, formatAmount } from "@/lib/currency"
 import { cn } from "@/lib/utils"
 import { emisApi, type Emi, type Installment } from "@/services/emis"
 import { useAuthStore } from "@/store/auth"
@@ -211,7 +211,7 @@ export default function EmiPage() {
                 <p className="text-xs text-muted-foreground">Due This Month</p>
                 <p className="text-xl font-bold">
                   {sym}
-                  {summary.thisMonthDue.toFixed(2)}
+                  {formatAmount(summary.thisMonthDue, currency)}
                 </p>
               </div>
             </CardContent>
@@ -225,7 +225,7 @@ export default function EmiPage() {
                 <p className="text-xs text-muted-foreground">Due Next Month</p>
                 <p className="text-xl font-bold">
                   {sym}
-                  {summary.nextMonthDue.toFixed(2)}
+                  {formatAmount(summary.nextMonthDue, currency)}
                 </p>
               </div>
             </CardContent>
@@ -239,7 +239,7 @@ export default function EmiPage() {
                 <p className="text-xs text-muted-foreground">Total Debt</p>
                 <p className="text-xl font-bold">
                   {sym}
-                  {summary.totalDebt.toFixed(2)}
+                  {formatAmount(summary.totalDebt, currency)}
                 </p>
               </div>
             </CardContent>
@@ -365,10 +365,10 @@ export default function EmiPage() {
                   <CardTitle className="text-base">{emi.name}</CardTitle>
                   <p className="mt-1 text-sm text-muted-foreground">
                     {sym}
-                    {emi.monthly_amount.toFixed(2)}/mo · {paid}/{total} paid ·{" "}
-                    {sym}
-                    {paidAmount.toFixed(2)} of {sym}
-                    {totalAmount.toFixed(2)}
+                    {formatAmount(emi.monthly_amount, currency)}/mo · {paid}/
+                    {total} paid · {sym}
+                    {formatAmount(paidAmount, currency)} of {sym}
+                    {formatAmount(totalAmount, currency)}
                   </p>
                 </div>
                 <Button

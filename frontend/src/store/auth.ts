@@ -14,6 +14,8 @@ interface AuthState {
   clearError: () => void
   setCurrency: (currency: string) => Promise<void>
   setDefaultPaymentMethod: (id: string | null) => Promise<void>
+  updateUsername: (username: string) => Promise<void>
+  deleteAccount: () => Promise<void>
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -78,6 +80,18 @@ export const useAuthStore = create<AuthState>((set) => ({
   setDefaultPaymentMethod: async (id) => {
     const { data } = await authApi.updateDefaultPaymentMethod(id)
     set({ user: data })
+  },
+
+  updateUsername: async (username) => {
+    const { data } = await authApi.updateUsername(username)
+    set({ user: data })
+  },
+
+  deleteAccount: async () => {
+    await authApi.deleteAccount()
+    localStorage.removeItem("access_token")
+    localStorage.removeItem("refresh_token")
+    set({ user: null, isAuthenticated: false })
   },
 
   clearError: () => set({ error: null }),

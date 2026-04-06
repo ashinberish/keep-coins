@@ -34,13 +34,15 @@ export interface PaginatedExpenses {
 export interface QuickStats {
   today_total: number
   month_total: number
+  today_income: number
+  month_income: number
 }
 
 export const expensesApi = {
   list: (
     page = 1,
     pageSize = 10,
-    period = "today",
+    period = "all",
     dateFrom?: string,
     dateTo?: string
   ) =>
