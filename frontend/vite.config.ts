@@ -14,7 +14,14 @@ function gitCommitCount() {
 
 function gitShortHash() {
   try {
-    return execSync("git rev-parse --short HEAD").toString().trim()
+    const hash = execSync("git rev-parse --short HEAD").toString().trim()
+    // Append "-dirty" if there are uncommitted changes
+    try {
+      execSync("git diff --quiet HEAD")
+      return hash
+    } catch {
+      return `${hash}-dirty`
+    }
   } catch {
     return "unknown"
   }
@@ -24,7 +31,8 @@ function gitShortHash() {
 export default defineConfig(({ mode }) => {
   const commitCount = gitCommitCount()
   const shortHash = gitShortHash()
-  const version = `0.1.${commitCount}`
+  const buildNumber = Date.now().toString(36)
+  const version = `0.1.${commitCount}+${buildNumber}`
 
   return {
     plugins: [react(), tailwindcss()],
