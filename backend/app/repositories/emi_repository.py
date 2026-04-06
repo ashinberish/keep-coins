@@ -46,3 +46,8 @@ class EmiRepository:
         await self.db.commit()
         await self.db.refresh(installment)
         return installment
+
+    async def update_emi(self, emi: Emi) -> Emi:
+        await self.db.commit()
+        await self.db.refresh(emi, attribute_names=["installments"])
+        return emi

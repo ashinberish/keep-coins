@@ -42,3 +42,8 @@ class InstallmentToggle(BaseModel):
 class InstallmentUpdate(BaseModel):
     amount: float | None = None
     is_paid: bool | None = None
+
+
+class EmiUpdate(BaseModel):
+    name: str | None = None
+    monthly_amount: float | None = None

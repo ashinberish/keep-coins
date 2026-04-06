@@ -7,6 +7,7 @@ from app.models.user import User
 from app.schemas.emi import (
     EmiCreate,
     EmiResponse,
+    EmiUpdate,
     InstallmentResponse,
     InstallmentUpdate,
 )
@@ -44,6 +45,19 @@ async def delete_emi(
 
     service = EmiService(db)
     await service.delete_emi(UUID(emi_id), current_user.id)
+
+
+@router.patch("/{emi_id}", response_model=EmiResponse)
+async def update_emi(
+    emi_id: str,
+    data: EmiUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from uuid import UUID
+
+    service = EmiService(db)
+    return await service.update_emi(UUID(emi_id), data, current_user.id)
 
 
 @router.patch("/installments/{installment_id}", response_model=InstallmentResponse)

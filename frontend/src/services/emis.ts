@@ -31,6 +31,9 @@ export const emisApi = {
 
   create: (data: CreateEmiPayload) => api.post<Emi>("/emis", data),
 
+  update: (id: string, data: { name?: string; monthly_amount?: number }) =>
+    api.patch<Emi>(`/emis/${id}`, data),
+
   delete: (id: string) => api.delete(`/emis/${id}`),
 
   toggleInstallment: (id: string, is_paid: boolean) =>

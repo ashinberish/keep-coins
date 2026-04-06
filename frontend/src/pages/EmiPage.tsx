@@ -8,6 +8,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
 import { currencySymbol, formatAmount } from "@/lib/currency"
 import { cn } from "@/lib/utils"
 import { emisApi, type Emi, type Installment } from "@/services/emis"
@@ -19,10 +27,10 @@ import {
   Check,
   CreditCard,
   Landmark,
+  Pencil,
   Plus,
   Trash2,
   TrendingDown,
-  X,
 } from "lucide-react"
 import { useEffect, useMemo, useState, type FormEvent } from "react"
 import { toast } from "sonner"
@@ -41,9 +49,20 @@ export default function EmiPage() {
   const [startDate, setStartDate] = useState<Date | undefined>(new Date())
   const [submitting, setSubmitting] = useState(false)
 
-  // editing installment amount
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editAmount, setEditAmount] = useState("")
+  // edit sheet state
+  const [editOpen, setEditOpen] = useState(false)
+  const [editEmi, setEditEmi] = useState<Emi | null>(null)
+  const [editName, setEditName] = useState("")
+  const [editInstallments, setEditInstallments] = useState<
+    {
+      id: string
+      month_number: number
+      due_date: string
+      amount: string
+      is_paid: boolean
+    }[]
+  >([])
+  const [editSaving, setEditSaving] = useState(false)
 
   // summary stats
   const summary = useMemo(() => {
@@ -149,26 +168,45 @@ export default function EmiPage() {
     }
   }
 
-  async function handleAmountSave(emi: Emi, instId: string) {
-    const val = parseFloat(editAmount)
-    if (isNaN(val) || val <= 0) return
+  function openEdit(emi: Emi) {
+    setEditEmi(emi)
+    setEditName(emi.name)
+    setEditInstallments(
+      emi.installments.map((i) => ({
+        id: i.id,
+        month_number: i.month_number,
+        due_date: i.due_date,
+        amount: i.amount.toString(),
+        is_paid: i.is_paid,
+      }))
+    )
+    setEditOpen(true)
+  }
+
+  async function handleEditSave(e: FormEvent) {
+    e.preventDefault()
+    if (!editEmi) return
+    setEditSaving(true)
     try {
-      const { data } = await emisApi.updateInstallment(instId, { amount: val })
-      setEmis((prev) =>
-        prev.map((e) =>
-          e.id === emi.id
-            ? {
-                ...e,
-                installments: e.installments.map((i) =>
-                  i.id === instId ? { ...i, ...data } : i
-                ),
-              }
-            : e
-        )
-      )
-      setEditingId(null)
+      // Update EMI name if changed
+      if (editName !== editEmi.name) {
+        await emisApi.update(editEmi.id, { name: editName })
+      }
+      // Update each installment amount if changed
+      for (const inst of editInstallments) {
+        const original = editEmi.installments.find((i) => i.id === inst.id)
+        const newAmount = parseFloat(inst.amount)
+        if (original && !isNaN(newAmount) && newAmount !== original.amount) {
+          await emisApi.updateInstallment(inst.id, { amount: newAmount })
+        }
+      }
+      toast.success("EMI updated")
+      setEditOpen(false)
+      await fetchEmis()
     } catch {
-      toast.error("Failed to update amount")
+      toast.error("Failed to update EMI")
+    } finally {
+      setEditSaving(false)
     }
   }
 
@@ -371,90 +409,58 @@ export default function EmiPage() {
                     {formatAmount(totalAmount, currency)}
                   </p>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleDelete(emi.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => openEdit(emi)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDelete(emi.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 {/* Timeline grid */}
                 <div className="flex flex-wrap gap-2">
                   {emi.installments.map((inst) => {
                     const due = new Date(inst.due_date + "T00:00:00")
-                    const isEditing = editingId === inst.id
 
                     return (
-                      <div key={inst.id} className="group relative">
-                        <button
-                          type="button"
-                          onClick={() => handleToggle(emi, inst)}
-                          onDoubleClick={(e) => {
-                            e.stopPropagation()
-                            setEditingId(inst.id)
-                            setEditAmount(inst.amount.toString())
-                          }}
-                          title="Click to toggle · Double-click to edit amount"
-                          className={cn(
-                            "flex h-16 w-20 flex-col items-center justify-center rounded-lg border-2 text-xs font-medium transition-all",
-                            "hover:scale-105 hover:shadow-md",
-                            inst.is_paid
-                              ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                              : "border-border bg-card text-foreground hover:border-primary/50"
-                          )}
-                        >
-                          {inst.is_paid ? (
-                            <Check className="mb-0.5 h-3.5 w-3.5 text-emerald-500" />
-                          ) : (
-                            <span className="mb-0.5 text-[10px] text-muted-foreground">
-                              {format(due, "MMM")}
-                            </span>
-                          )}
-                          <span className="font-mono text-xs font-semibold tabular-nums">
-                            {sym}
-                            {inst.amount.toFixed(0)}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground">
-                            {inst.is_paid ? "Paid" : format(due, "yyyy")}
-                          </span>
-                        </button>
-
-                        {isEditing && (
-                          <div className="absolute top-full left-0 z-10 mt-1 flex gap-1">
-                            <Input
-                              type="number"
-                              step="0.01"
-                              value={editAmount}
-                              onChange={(e) => setEditAmount(e.target.value)}
-                              className="h-7 w-20 text-xs"
-                              autoFocus
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter")
-                                  handleAmountSave(emi, inst.id)
-                                if (e.key === "Escape") setEditingId(null)
-                              }}
-                            />
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-7 w-7"
-                              onClick={() => handleAmountSave(emi, inst.id)}
-                            >
-                              <Check className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-7 w-7"
-                              onClick={() => setEditingId(null)}
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </div>
+                      <button
+                        key={inst.id}
+                        type="button"
+                        onClick={() => handleToggle(emi, inst)}
+                        title="Click to toggle paid"
+                        className={cn(
+                          "flex h-16 w-20 flex-col items-center justify-center rounded-lg border-2 text-xs font-medium transition-all",
+                          "hover:scale-105 hover:shadow-md",
+                          inst.is_paid
+                            ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                            : "border-border bg-card text-foreground hover:border-primary/50"
                         )}
-                      </div>
+                      >
+                        {inst.is_paid ? (
+                          <Check className="mb-0.5 h-3.5 w-3.5 text-emerald-500" />
+                        ) : (
+                          <span className="mb-0.5 text-[10px] text-muted-foreground">
+                            {format(due, "MMM")}
+                          </span>
+                        )}
+                        <span className="font-mono text-xs font-semibold tabular-nums">
+                          {sym}
+                          {inst.amount.toFixed(0)}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {inst.is_paid ? "Paid" : format(due, "yyyy")}
+                        </span>
+                      </button>
                     )
                   })}
                 </div>
@@ -472,6 +478,74 @@ export default function EmiPage() {
           )
         })
       )}
+
+      {/* Edit EMI Sheet */}
+      <Sheet open={editOpen} onOpenChange={setEditOpen}>
+        <SheetContent side="right" className="overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Edit EMI</SheetTitle>
+            <SheetDescription>
+              Update the EMI name and individual installment amounts.
+            </SheetDescription>
+          </SheetHeader>
+          <form
+            onSubmit={handleEditSave}
+            className="flex flex-1 flex-col gap-4 overflow-y-auto px-4"
+          >
+            <div className="grid gap-1.5">
+              <Label>Name</Label>
+              <Input
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                required
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Installments</Label>
+              <div className="space-y-2">
+                {editInstallments.map((inst, idx) => {
+                  const due = new Date(inst.due_date + "T00:00:00")
+                  return (
+                    <div key={inst.id} className="flex items-center gap-3">
+                      <span className="w-20 text-xs text-muted-foreground">
+                        #{inst.month_number} · {format(due, "MMM yyyy")}
+                      </span>
+                      {inst.is_paid ? (
+                        <div className="flex h-9 flex-1 items-center rounded-md border bg-muted px-3 text-sm text-muted-foreground">
+                          <Check className="mr-2 h-3.5 w-3.5 text-emerald-500" />
+                          {sym}
+                          {parseFloat(inst.amount).toFixed(2)} (Paid)
+                        </div>
+                      ) : (
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={inst.amount}
+                          onChange={(e) =>
+                            setEditInstallments((prev) =>
+                              prev.map((item, i) =>
+                                i === idx
+                                  ? { ...item, amount: e.target.value }
+                                  : item
+                              )
+                            )
+                          }
+                          className="flex-1"
+                        />
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+            <SheetFooter>
+              <Button type="submit" disabled={editSaving || !editName.trim()}>
+                {editSaving ? "Saving…" : "Save Changes"}
+              </Button>
+            </SheetFooter>
+          </form>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

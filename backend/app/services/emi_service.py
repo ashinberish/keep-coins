@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.emi import Emi, EmiInstallment
 from app.repositories.emi_repository import EmiRepository
-from app.schemas.emi import EmiCreate, InstallmentUpdate
+from app.schemas.emi import EmiCreate, EmiUpdate, InstallmentUpdate
 
 
 class EmiService:
@@ -67,3 +67,17 @@ class EmiService:
         if data.is_paid is not None:
             installment.is_paid = data.is_paid
         return await self.repo.update_installment(installment)
+
+    async def update_emi(
+        self, emi_id: uuid.UUID, data: EmiUpdate, user_id: uuid.UUID
+    ) -> Emi:
+        emi = await self.repo.get_by_id(emi_id)
+        if not emi or emi.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="EMI not found"
+            )
+        if data.name is not None:
+            emi.name = data.name
+        if data.monthly_amount is not None:
+            emi.monthly_amount = data.monthly_amount
+        return await self.repo.update_emi(emi)
