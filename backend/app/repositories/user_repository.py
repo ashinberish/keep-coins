@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
@@ -15,7 +15,9 @@ class UserRepository:
         return result.scalar_one_or_none()
 
     async def get_by_email(self, email: str) -> User | None:
-        result = await self.db.execute(select(User).where(User.email == email))
+        result = await self.db.execute(
+            select(User).where(func.lower(User.email) == email.lower())
+        )
         return result.scalar_one_or_none()
 
     async def get_by_username(self, username: str) -> User | None:

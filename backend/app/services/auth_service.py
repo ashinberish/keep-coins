@@ -8,6 +8,7 @@ from app.core.security import (
     hash_password,
     verify_password,
 )
+from app.models.payment_method import PaymentMethod
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
 from app.schemas.auth import TokenResponse, UserCreate, UserLogin
@@ -18,7 +19,8 @@ class AuthService:
         self.repo = UserRepository(db)
 
     async def register(self, data: UserCreate) -> User:
-        if await self.repo.get_by_email(data.email):
+        email = data.email.lower()
+        if await self.repo.get_by_email(email):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Email already registered",
@@ -30,11 +32,25 @@ class AuthService:
             )
 
         user = User(
-            email=data.email,
+            email=email,
             username=data.username,
             hashed_password=hash_password(data.password),
         )
-        return await self.repo.create(user)
+        user = await self.repo.create(user)
+
+        # Create default CASH payment method and set it as default
+        cash_pm = PaymentMethod(
+            user_id=user.id,
+            name="Cash",
+            icon="💵",
+        )
+        self.repo.db.add(cash_pm)
+        await self.repo.db.flush()
+        user.default_payment_method_id = cash_pm.id
+        await self.repo.db.commit()
+        await self.repo.db.refresh(user)
+
+        return user
 
     async def login(self, data: UserLogin) -> TokenResponse:
         user = await self.repo.get_by_email(data.email)
