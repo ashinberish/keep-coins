@@ -31,8 +31,7 @@ function gitShortHash() {
 export default defineConfig(({ mode }) => {
   const commitCount = gitCommitCount()
   const shortHash = gitShortHash()
-  const buildNumber = Date.now().toString(36)
-  const version = `0.1.${commitCount}+${buildNumber}`
+  const version = `0.1.${commitCount}`
 
   return {
     plugins: [react(), tailwindcss()],
