@@ -6,7 +6,9 @@ from app.db.session import get_db
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
 from app.schemas.auth import (
+    MessageResponse,
     RefreshTokenRequest,
+    ResendCodeRequest,
     TokenResponse,
     UpdateCurrencyRequest,
     UpdateDefaultPaymentMethodRequest,
@@ -14,6 +16,7 @@ from app.schemas.auth import (
     UserCreate,
     UserLogin,
     UserResponse,
+    VerifyEmailRequest,
 )
 from app.services.auth_service import AuthService
 
@@ -25,6 +28,20 @@ async def signup(data: UserCreate, db: AsyncSession = Depends(get_db)):
     service = AuthService(db)
     user = await service.register(data)
     return user
+
+
+@router.post("/verify-email", response_model=MessageResponse)
+async def verify_email(data: VerifyEmailRequest, db: AsyncSession = Depends(get_db)):
+    service = AuthService(db)
+    return await service.verify_email(data.email, data.code)
+
+
+@router.post("/resend-verification", response_model=MessageResponse)
+async def resend_verification(
+    data: ResendCodeRequest, db: AsyncSession = Depends(get_db)
+):
+    service = AuthService(db)
+    return await service.resend_verification(data.email)
 
 
 @router.post("/login", response_model=TokenResponse)

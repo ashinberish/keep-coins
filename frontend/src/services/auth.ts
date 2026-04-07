@@ -22,15 +22,31 @@ export interface UserResponse {
   email: string
   username: string
   is_active: boolean
+  is_email_verified: boolean
   currency: string
   default_payment_method_id: string | null
   created_at: string
+}
+
+export interface VerifyEmailPayload {
+  email: string
+  code: string
+}
+
+export interface ResendCodePayload {
+  email: string
 }
 
 export const authApi = {
   signup: (data: SignupPayload) => api.post<UserResponse>("/auth/signup", data),
 
   login: (data: LoginPayload) => api.post<TokenResponse>("/auth/login", data),
+
+  verifyEmail: (data: VerifyEmailPayload) =>
+    api.post<{ message: string }>("/auth/verify-email", data),
+
+  resendVerification: (data: ResendCodePayload) =>
+    api.post<{ message: string }>("/auth/resend-verification", data),
 
   getMe: () => api.get<UserResponse>("/auth/me"),
 

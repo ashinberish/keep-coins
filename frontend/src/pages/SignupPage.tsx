@@ -43,8 +43,8 @@ export default function SignupPage() {
 
     try {
       await signup(email, username, password)
-      toast.success("Account created successfully!")
-      navigate("/login")
+      toast.success("Account created! Please verify your email.")
+      navigate("/verify-email")
     } catch {
       // error is set in store
     }

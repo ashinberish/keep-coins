@@ -6,12 +6,16 @@ interface AuthState {
   isAuthenticated: boolean
   isLoading: boolean
   error: string | null
+  pendingVerificationEmail: string | null
 
   login: (email: string, password: string) => Promise<void>
   signup: (email: string, username: string, password: string) => Promise<void>
+  verifyEmail: (email: string, code: string) => Promise<void>
+  resendVerification: (email: string) => Promise<void>
   logout: () => void
   fetchUser: () => Promise<void>
   clearError: () => void
+  setPendingVerificationEmail: (email: string | null) => void
   setCurrency: (currency: string) => Promise<void>
   setDefaultPaymentMethod: (id: string | null) => Promise<void>
   updateUsername: (username: string) => Promise<void>
@@ -23,6 +27,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   isAuthenticated: !!localStorage.getItem("access_token"),
   isLoading: false,
   error: null,
+  pendingVerificationEmail: null,
 
   login: async (email, password) => {
     set({ isLoading: true, error: null })
@@ -36,7 +41,17 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch (err: any) {
       const message =
         err.response?.data?.detail ?? "Login failed. Please try again."
-      set({ error: message, isLoading: false })
+      const isUnverified =
+        err.response?.status === 403 && message.includes("Email not verified")
+      if (isUnverified) {
+        set({
+          error: null,
+          isLoading: false,
+          pendingVerificationEmail: email,
+        })
+      } else {
+        set({ error: message, isLoading: false })
+      }
       throw err
     }
   },
@@ -45,10 +60,36 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ isLoading: true, error: null })
     try {
       await authApi.signup({ email, username, password })
-      set({ isLoading: false })
+      set({ isLoading: false, pendingVerificationEmail: email })
     } catch (err: any) {
       const message =
         err.response?.data?.detail ?? "Signup failed. Please try again."
+      set({ error: message, isLoading: false })
+      throw err
+    }
+  },
+
+  verifyEmail: async (email, code) => {
+    set({ isLoading: true, error: null })
+    try {
+      await authApi.verifyEmail({ email, code })
+      set({ isLoading: false, pendingVerificationEmail: null })
+    } catch (err: any) {
+      const message =
+        err.response?.data?.detail ?? "Verification failed. Please try again."
+      set({ error: message, isLoading: false })
+      throw err
+    }
+  },
+
+  resendVerification: async (email) => {
+    set({ isLoading: true, error: null })
+    try {
+      await authApi.resendVerification({ email })
+      set({ isLoading: false })
+    } catch (err: any) {
+      const message =
+        err.response?.data?.detail ?? "Failed to resend code. Please try again."
       set({ error: message, isLoading: false })
       throw err
     }

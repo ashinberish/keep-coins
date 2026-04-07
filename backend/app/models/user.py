@@ -29,6 +29,13 @@ class User(Base):
         ForeignKey("payment_methods.id", ondelete="SET NULL"),
         nullable=True,
     )
+    is_email_verified: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false"
+    )
+    verification_code: Mapped[str | None] = mapped_column(String(6), nullable=True)
+    verification_code_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(

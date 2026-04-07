@@ -29,6 +29,7 @@ class UserResponse(BaseModel):
     email: str
     username: str
     is_active: bool
+    is_email_verified: bool = False
     currency: str = "USD"
     default_payment_method_id: uuid.UUID | None = None
     created_at: datetime
@@ -56,3 +57,12 @@ class TokenResponse(BaseModel):
 
 class MessageResponse(BaseModel):
     message: str
+
+
+class VerifyEmailRequest(BaseModel):
+    email: EmailStr
+    code: str
+
+
+class ResendCodeRequest(BaseModel):
+    email: EmailStr

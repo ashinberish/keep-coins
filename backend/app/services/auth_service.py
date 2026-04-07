@@ -1,6 +1,10 @@
+from datetime import datetime, timedelta, timezone
+
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
+from app.core.email import generate_verification_code, send_verification_email
 from app.core.security import (
     create_access_token,
     create_refresh_token,
@@ -17,6 +21,14 @@ from app.schemas.auth import TokenResponse, UserCreate, UserLogin
 class AuthService:
     def __init__(self, db: AsyncSession):
         self.repo = UserRepository(db)
+
+    def _generate_and_set_code(self, user: User) -> str:
+        code = generate_verification_code()
+        user.verification_code = code
+        user.verification_code_expires_at = datetime.now(timezone.utc) + timedelta(
+            minutes=settings.VERIFICATION_CODE_EXPIRE_MINUTES
+        )
+        return code
 
     async def register(self, data: UserCreate) -> User:
         email = data.email.lower()
@@ -35,7 +47,10 @@ class AuthService:
             email=email,
             username=data.username,
             hashed_password=hash_password(data.password),
+            is_email_verified=False,
         )
+
+        code = self._generate_and_set_code(user)
         user = await self.repo.create(user)
 
         # Create default CASH payment method and set it as default
@@ -49,6 +64,8 @@ class AuthService:
         user.default_payment_method_id = cash_pm.id
         await self.repo.db.commit()
         await self.repo.db.refresh(user)
+
+        send_verification_email(email, code)
 
         return user
 
@@ -64,11 +81,73 @@ class AuthService:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Account is deactivated",
             )
+        if not user.is_email_verified:
+            code = self._generate_and_set_code(user)
+            await self.repo.db.commit()
+            send_verification_email(user.email, code)
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Email not verified. A new verification code has been sent.",
+            )
 
         return TokenResponse(
             access_token=create_access_token(str(user.id)),
             refresh_token=create_refresh_token(str(user.id)),
         )
+
+    async def verify_email(self, email: str, code: str) -> dict:
+        user = await self.repo.get_by_email(email)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found",
+            )
+        if user.is_email_verified:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already verified",
+            )
+        if not user.verification_code or not user.verification_code_expires_at:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No verification code found. Please request a new one.",
+            )
+        if datetime.now(timezone.utc) > user.verification_code_expires_at:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Verification code has expired. Please request a new one.",
+            )
+        if user.verification_code != code:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid verification code",
+            )
+
+        user.is_email_verified = True
+        user.verification_code = None
+        user.verification_code_expires_at = None
+        await self.repo.db.commit()
+
+        return {"message": "Email verified successfully"}
+
+    async def resend_verification(self, email: str) -> dict:
+        user = await self.repo.get_by_email(email)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found",
+            )
+        if user.is_email_verified:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already verified",
+            )
+
+        code = self._generate_and_set_code(user)
+        await self.repo.db.commit()
+        send_verification_email(user.email, code)
+
+        return {"message": "Verification code sent"}
 
     async def refresh(self, refresh_token: str) -> TokenResponse:
         payload = decode_token(refresh_token)

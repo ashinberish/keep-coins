@@ -9,6 +9,11 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     CORS_ORIGINS: str = "http://localhost:5173"
 
+    # Resend settings
+    RESEND_API_KEY: str = ""
+    RESEND_FROM_EMAIL: str = "KeepCoins <noreply@keepcoins.online>"
+    VERIFICATION_CODE_EXPIRE_MINUTES: int = 10
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]

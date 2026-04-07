@@ -30,8 +30,14 @@ export default function LoginPage() {
       await login(email, password)
       toast.success("Signed in successfully!")
       navigate("/")
-    } catch {
-      // error is set in store
+    } catch (err: any) {
+      const isUnverified =
+        err.response?.status === 403 &&
+        err.response?.data?.detail?.includes("Email not verified")
+      if (isUnverified) {
+        toast.info("Please verify your email first.")
+        navigate("/verify-email")
+      }
     }
   }
 

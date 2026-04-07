@@ -7,6 +7,7 @@ import LoginPage from "@/pages/LoginPage"
 import SettingsPage from "@/pages/SettingsPage"
 import SignupPage from "@/pages/SignupPage"
 import SummaryPage from "@/pages/SummaryPage"
+import VerifyEmailPage from "@/pages/VerifyEmailPage"
 import { useAuthStore } from "@/store/auth"
 import { useEffect } from "react"
 import { Route, Routes } from "react-router"
@@ -38,6 +39,14 @@ export function App() {
           element={
             <GuestRoute>
               <SignupPage />
+            </GuestRoute>
+          }
+        />
+        <Route
+          path="/verify-email"
+          element={
+            <GuestRoute>
+              <VerifyEmailPage />
             </GuestRoute>
           }
         />
