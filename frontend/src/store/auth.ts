@@ -135,5 +135,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ user: null, isAuthenticated: false })
   },
 
+  setPendingVerificationEmail: (email) =>
+    set({ pendingVerificationEmail: email }),
+
   clearError: () => set({ error: null }),
 }))
