@@ -32,6 +32,7 @@ import {
   Receipt,
   Settings,
   Shield,
+  Users,
   Wallet,
 } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -57,6 +58,7 @@ const ALL_NAV_ITEMS = [
     icon: BarChart3,
   },
   { key: "feature.emis", title: "EMIs", url: "/emis", icon: Landmark },
+  { key: "feature.groups", title: "Groups", url: "/groups", icon: Users },
 ]
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -185,7 +187,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 ? "Settings"
                 : pathname === "/admin"
                   ? "Admin Settings"
-                  : "")}
+                  : pathname.startsWith("/groups/")
+                    ? "Groups"
+                    : "")}
           </span>
         </header>
         <main className="flex-1 overflow-y-auto p-6">{children}</main>

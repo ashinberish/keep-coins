@@ -5,6 +5,8 @@ import AccountsPage from "@/pages/AccountsPage"
 import AdminSettingsPage from "@/pages/AdminSettingsPage"
 import EmiPage from "@/pages/EmiPage"
 import ExpensesPage from "@/pages/ExpensesPage"
+import GroupDetailPage from "@/pages/GroupDetailPage"
+import GroupsPage from "@/pages/GroupsPage"
 import LoginPage from "@/pages/LoginPage"
 import SettingsPage from "@/pages/SettingsPage"
 import SignupPage from "@/pages/SignupPage"
@@ -88,6 +90,26 @@ export function App() {
             <ProtectedRoute>
               <AppLayout>
                 <AccountsPage />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/groups"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <GroupsPage />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/groups/:groupId"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <GroupDetailPage />
               </AppLayout>
             </ProtectedRoute>
           }

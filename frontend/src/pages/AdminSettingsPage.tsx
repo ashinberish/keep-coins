@@ -10,6 +10,7 @@ const FEATURE_LABELS: Record<string, string> = {
   "feature.accounts": "Accounts",
   "feature.summary": "Summary",
   "feature.emis": "EMIs",
+  "feature.groups": "Groups",
 }
 
 export default function AdminSettingsPage() {
