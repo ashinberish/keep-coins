@@ -30,6 +30,11 @@ class PaymentMethodRepository:
         await self.db.refresh(pm)
         return pm
 
+    async def update(self, pm: PaymentMethod) -> PaymentMethod:
+        await self.db.commit()
+        await self.db.refresh(pm)
+        return pm
+
     async def delete(self, pm: PaymentMethod) -> None:
         await self.db.delete(pm)
         await self.db.commit()

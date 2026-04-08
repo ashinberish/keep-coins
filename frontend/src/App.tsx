@@ -1,6 +1,8 @@
 import { AppLayout } from "@/components/AppLayout"
 import { GuestRoute } from "@/components/GuestRoute"
 import { ProtectedRoute } from "@/components/ProtectedRoute"
+import AccountsPage from "@/pages/AccountsPage"
+import AdminSettingsPage from "@/pages/AdminSettingsPage"
 import EmiPage from "@/pages/EmiPage"
 import ExpensesPage from "@/pages/ExpensesPage"
 import LoginPage from "@/pages/LoginPage"
@@ -81,11 +83,31 @@ export function App() {
           }
         />
         <Route
+          path="/accounts"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <AccountsPage />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/settings"
           element={
             <ProtectedRoute>
               <AppLayout>
                 <SettingsPage />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <AdminSettingsPage />
               </AppLayout>
             </ProtectedRoute>
           }

@@ -20,6 +20,9 @@ class Category(Base):
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     emoji: Mapped[str] = mapped_column(String(10), nullable=False, default="📁")
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    category_type: Mapped[str] = mapped_column(
+        String(10), nullable=False, default="expense", server_default="expense"
+    )
     user_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=True
     )

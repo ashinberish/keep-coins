@@ -33,11 +33,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { CURRENCIES, currencyIcon } from "@/lib/currency"
+import { accountsApi, type Account } from "@/services/accounts"
 import { categoriesApi, type Category } from "@/services/categories"
-import {
-  paymentMethodsApi,
-  type PaymentMethod,
-} from "@/services/payment-methods"
 import { useAuthStore } from "@/store/auth"
 import { Trash2 } from "lucide-react"
 import { useEffect, useState, type FormEvent } from "react"
@@ -86,24 +83,11 @@ const EMOJI_OPTIONS = [
   "📁",
 ]
 
-const PM_ICON_OPTIONS = [
-  "💳",
-  "💵",
-  "🏦",
-  "📱",
-  "🪙",
-  "💎",
-  "🏧",
-  "💸",
-  "🤑",
-  "📲",
-]
-
 export default function SettingsPage() {
   const {
     user,
     setCurrency,
-    setDefaultPaymentMethod,
+    setDefaultAccount,
     updateUsername,
     deleteAccount,
   } = useAuthStore()
@@ -127,19 +111,15 @@ export default function SettingsPage() {
   const [catEmoji, setCatEmoji] = useState("")
   const [catEmojiOpen, setCatEmojiOpen] = useState(false)
   const [catDesc, setCatDesc] = useState("")
+  const [catType, setCatType] = useState<"expense" | "income">("expense")
   const [catSubmitting, setCatSubmitting] = useState(false)
 
-  // Payment methods state
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
-  const [pmLoading, setPmLoading] = useState(true)
-  const [pmName, setPmName] = useState("")
-  const [pmIcon, setPmIcon] = useState("")
-  const [pmIconOpen, setPmIconOpen] = useState(false)
-  const [pmSubmitting, setPmSubmitting] = useState(false)
+  // Accounts state (for default account selector)
+  const [accounts, setAccounts] = useState<Account[]>([])
 
   useEffect(() => {
     fetchCategories()
-    fetchPaymentMethods()
+    fetchAccounts()
   }, [])
 
   async function fetchCategories() {
@@ -153,14 +133,12 @@ export default function SettingsPage() {
     }
   }
 
-  async function fetchPaymentMethods() {
+  async function fetchAccounts() {
     try {
-      const { data } = await paymentMethodsApi.list()
-      setPaymentMethods(data)
+      const { data } = await accountsApi.list()
+      setAccounts(data)
     } catch {
-      toast.error("Failed to load payment methods")
-    } finally {
-      setPmLoading(false)
+      toast.error("Failed to load accounts")
     }
   }
 
@@ -173,6 +151,7 @@ export default function SettingsPage() {
         name: catName.trim(),
         emoji: catEmoji || undefined,
         description: catDesc.trim() || undefined,
+        category_type: catType,
       })
       setCategories((prev) =>
         [...prev, data].sort((a, b) => a.name.localeCompare(b.name))
@@ -180,6 +159,7 @@ export default function SettingsPage() {
       setCatName("")
       setCatEmoji("")
       setCatDesc("")
+      setCatType("expense")
       toast.success("Category created")
     } catch (err: unknown) {
       const message =
@@ -204,44 +184,6 @@ export default function SettingsPage() {
     }
   }
 
-  async function handlePmSubmit(e: FormEvent) {
-    e.preventDefault()
-    if (!pmName.trim()) return
-    setPmSubmitting(true)
-    try {
-      const { data } = await paymentMethodsApi.create({
-        name: pmName.trim(),
-        icon: pmIcon || undefined,
-      })
-      setPaymentMethods((prev) =>
-        [...prev, data].sort((a, b) => a.name.localeCompare(b.name))
-      )
-      setPmName("")
-      setPmIcon("")
-      toast.success("Payment method created")
-    } catch (err: unknown) {
-      const message =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data
-          ?.detail ?? "Failed to create payment method"
-      toast.error(message)
-    } finally {
-      setPmSubmitting(false)
-    }
-  }
-
-  async function handlePmDelete(id: string) {
-    try {
-      await paymentMethodsApi.delete(id)
-      setPaymentMethods((prev) => prev.filter((p) => p.id !== id))
-      toast.success("Payment method deleted")
-    } catch (err: unknown) {
-      const message =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data
-          ?.detail ?? "Failed to delete payment method"
-      toast.error(message)
-    }
-  }
-
   const handleCurrencyChange = async (value: string | null) => {
     if (!value) return
     try {
@@ -252,15 +194,13 @@ export default function SettingsPage() {
     }
   }
 
-  const handleDefaultPmChange = async (value: string | null) => {
+  const handleDefaultAccountChange = async (value: string | null) => {
     try {
       const id = value === "none" ? null : value
-      await setDefaultPaymentMethod(id)
-      toast.success(
-        id ? "Default payment method updated" : "Default payment method cleared"
-      )
+      await setDefaultAccount(id)
+      toast.success(id ? "Default account updated" : "Default account cleared")
     } catch {
-      toast.error("Failed to update default payment method")
+      toast.error("Failed to update default account")
     }
   }
 
@@ -368,35 +308,35 @@ export default function SettingsPage() {
           </div>
           <Separator />
           <div className="grid gap-1.5">
-            <Label>Default Payment Method</Label>
+            <Label>Default Account</Label>
             <Select
-              value={user?.default_payment_method_id ?? "none"}
-              onValueChange={handleDefaultPmChange}
+              value={user?.default_account_id ?? "none"}
+              onValueChange={handleDefaultAccountChange}
             >
               <SelectTrigger className="w-full sm:w-64">
                 <SelectValue>
-                  {user?.default_payment_method_id
+                  {user?.default_account_id
                     ? (() => {
-                        const pm = paymentMethods.find(
-                          (p) => p.id === user.default_payment_method_id
+                        const acct = accounts.find(
+                          (a) => a.id === user.default_account_id
                         )
-                        return pm ? `${pm.icon} ${pm.name}` : "None"
+                        return acct ? `${acct.icon} ${acct.name}` : "None"
                       })()
                     : "None"}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent alignItemWithTrigger={false}>
                 <SelectItem value="none">None</SelectItem>
-                {paymentMethods.map((pm) => (
-                  <SelectItem key={pm.id} value={pm.id}>
-                    <span className="mr-2">{pm.icon}</span>
-                    {pm.name}
+                {accounts.map((acct) => (
+                  <SelectItem key={acct.id} value={acct.id}>
+                    <span className="mr-2">{acct.icon}</span>
+                    {acct.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              Auto-selected when adding new expenses.
+              Auto-selected when adding new transactions.
             </p>
           </div>
         </CardContent>
@@ -460,6 +400,21 @@ export default function SettingsPage() {
                 onChange={(e) => setCatDesc(e.target.value)}
               />
             </div>
+            <div className="grid gap-1.5">
+              <Label>Type</Label>
+              <Select
+                value={catType}
+                onValueChange={(v) => setCatType(v as "expense" | "income")}
+              >
+                <SelectTrigger className="w-28">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent alignItemWithTrigger={false}>
+                  <SelectItem value="expense">Expense</SelectItem>
+                  <SelectItem value="income">Income</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <Button type="submit" disabled={catSubmitting}>
               {catSubmitting ? "Adding…" : "Add"}
             </Button>
@@ -489,11 +444,17 @@ export default function SettingsPage() {
                       {category.description ?? "—"}
                     </TableCell>
                     <TableCell>
-                      {category.user_id ? (
-                        <Badge variant="secondary">Custom</Badge>
-                      ) : (
-                        <Badge variant="outline">Default</Badge>
-                      )}
+                      <Badge
+                        variant={
+                          category.category_type === "income"
+                            ? "secondary"
+                            : "outline"
+                        }
+                      >
+                        {category.category_type === "income"
+                          ? "Income"
+                          : "Expense"}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       {category.user_id && (
@@ -505,97 +466,6 @@ export default function SettingsPage() {
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Payment Methods */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Payment Methods</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <form
-            onSubmit={handlePmSubmit}
-            className="flex flex-wrap items-end gap-4"
-          >
-            <div className="grid gap-1.5">
-              <Label>Icon</Label>
-              <Popover open={pmIconOpen} onOpenChange={setPmIconOpen}>
-                <PopoverTrigger
-                  render={
-                    <Button variant="outline" className="h-9 w-16 text-lg" />
-                  }
-                >
-                  {pmIcon || "💳"}
-                </PopoverTrigger>
-                <PopoverContent className="w-64 p-2" align="start">
-                  <div className="grid grid-cols-8 gap-1">
-                    {PM_ICON_OPTIONS.map((e) => (
-                      <button
-                        key={e}
-                        type="button"
-                        className="flex h-8 w-8 items-center justify-center rounded-md text-lg hover:bg-accent"
-                        onClick={() => {
-                          setPmIcon(e)
-                          setPmIconOpen(false)
-                        }}
-                      >
-                        {e}
-                      </button>
-                    ))}
-                  </div>
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div className="grid w-48 gap-1.5">
-              <Label htmlFor="pm-name">Name</Label>
-              <Input
-                id="pm-name"
-                placeholder="e.g. Credit Card"
-                value={pmName}
-                onChange={(e) => setPmName(e.target.value)}
-                required
-              />
-            </div>
-            <Button type="submit" disabled={pmSubmitting}>
-              {pmSubmitting ? "Adding…" : "Add"}
-            </Button>
-          </form>
-          <Separator />
-          {pmLoading ? (
-            <p className="text-sm text-muted-foreground">Loading…</p>
-          ) : paymentMethods.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No payment methods yet. Add one above.
-            </p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-16">Icon</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead className="w-12" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paymentMethods.map((pm) => (
-                  <TableRow key={pm.id}>
-                    <TableCell className="text-lg">{pm.icon}</TableCell>
-                    <TableCell className="font-medium">{pm.name}</TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handlePmDelete(pm.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}

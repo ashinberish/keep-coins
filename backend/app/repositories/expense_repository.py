@@ -3,10 +3,13 @@ from datetime import date
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
+from app.models.account import Account
 from app.models.category import Category
 from app.models.expense import Expense
-from app.models.payment_method import PaymentMethod
+
+TransferToAccount = aliased(Account)
 
 
 class ExpenseRepository:
@@ -36,10 +39,15 @@ class ExpenseRepository:
             select(
                 Expense,
                 Category.name.label("category_name"),
-                PaymentMethod.name.label("payment_method_name"),
+                Account.name.label("account_name"),
+                TransferToAccount.name.label("transfer_to_account_name"),
             )
-            .join(Category, Expense.category_id == Category.id)
-            .outerjoin(PaymentMethod, Expense.payment_method_id == PaymentMethod.id)
+            .outerjoin(Category, Expense.category_id == Category.id)
+            .outerjoin(Account, Expense.account_id == Account.id)
+            .outerjoin(
+                TransferToAccount,
+                Expense.transfer_to_account_id == TransferToAccount.id,
+            )
             .where(Expense.user_id == user_id)
             .where(Expense.date >= date_from if date_from else True)
             .where(Expense.date <= date_to if date_to else True)
@@ -49,7 +57,7 @@ class ExpenseRepository:
         )
         rows = result.all()
         items = []
-        for expense, cat_name, pm_name in rows:
+        for expense, cat_name, acct_name, transfer_to_acct_name in rows:
             items.append(
                 {
                     "id": expense.id,
@@ -61,8 +69,10 @@ class ExpenseRepository:
                     "date": expense.date,
                     "created_at": expense.created_at,
                     "category_name": cat_name,
-                    "payment_method_id": expense.payment_method_id,
-                    "payment_method_name": pm_name,
+                    "account_id": expense.account_id,
+                    "account_name": acct_name,
+                    "transfer_to_account_id": expense.transfer_to_account_id,
+                    "transfer_to_account_name": transfer_to_acct_name,
                 }
             )
         return items, total

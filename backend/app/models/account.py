@@ -9,8 +9,8 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.db.base import Base
 
 
-class PaymentMethod(Base):
-    __tablename__ = "payment_methods"
+class Account(Base):
+    __tablename__ = "accounts"
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
@@ -20,6 +20,12 @@ class PaymentMethod(Base):
     )
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     icon: Mapped[str] = mapped_column(String(10), nullable=False, default="💳")
+    type: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="bank", server_default="bank"
+    )
+    credit_limit: Mapped[Decimal | None] = mapped_column(
+        Numeric(precision=12, scale=2), nullable=True
+    )
     balance: Mapped[Decimal] = mapped_column(
         Numeric(precision=12, scale=2), nullable=False, default=Decimal("0")
     )

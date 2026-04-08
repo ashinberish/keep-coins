@@ -13,7 +13,6 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
@@ -22,6 +21,8 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
+import { Skeleton } from "@/components/ui/skeleton"
+import { configApi, type AppConfig } from "@/services/config"
 import { useAuthStore } from "@/store/auth"
 import {
   BarChart3,
@@ -30,19 +31,61 @@ import {
   LogOut,
   Receipt,
   Settings,
+  Shield,
+  Wallet,
 } from "lucide-react"
+import { useEffect, useState } from "react"
 import { Link, useLocation, useNavigate } from "react-router"
 
-const navItems = [
-  { title: "Expenses", url: "/", icon: Receipt },
-  { title: "Summary", url: "/summary", icon: BarChart3 },
-  { title: "EMIs", url: "/emis", icon: Landmark },
+const ALL_NAV_ITEMS = [
+  {
+    key: "feature.transactions",
+    title: "Transactions",
+    url: "/",
+    icon: Receipt,
+  },
+  {
+    key: "feature.accounts",
+    title: "Accounts",
+    url: "/accounts",
+    icon: Wallet,
+  },
+  {
+    key: "feature.summary",
+    title: "Summary",
+    url: "/summary",
+    icon: BarChart3,
+  },
+  { key: "feature.emis", title: "EMIs", url: "/emis", icon: Landmark },
 ]
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const { user, logout } = useAuthStore()
+  const [enabledKeys, setEnabledKeys] = useState<Set<string>>(
+    new Set(ALL_NAV_ITEMS.map((i) => i.key))
+  )
+  const [configLoaded, setConfigLoaded] = useState(false)
+
+  useEffect(() => {
+    configApi
+      .list()
+      .then(({ data }) => {
+        setEnabledKeys(
+          new Set(
+            data
+              .filter(
+                (c: AppConfig) =>
+                  c.key.startsWith("feature.") && c.value === "true"
+              )
+              .map((c: AppConfig) => c.key)
+          )
+        )
+      })
+      .catch(() => {})
+      .finally(() => setConfigLoaded(true))
+  }, [])
 
   const initials = user?.username
     ? user.username.slice(0, 2).toUpperCase()
@@ -56,20 +99,30 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </SidebarHeader>
         <SidebarContent>
           <SidebarGroup>
-            <SidebarGroupLabel>Menu</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {navItems.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      isActive={pathname === item.url}
-                      render={<Link to={item.url} />}
-                    >
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
+                {!configLoaded
+                  ? Array.from({ length: 4 }).map((_, i) => (
+                      <SidebarMenuItem key={i}>
+                        <SidebarMenuButton disabled>
+                          <Skeleton className="h-4 w-4 rounded" />
+                          <Skeleton className="h-4 w-24 rounded" />
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))
+                  : ALL_NAV_ITEMS.filter((item) =>
+                      enabledKeys.has(item.key)
+                    ).map((item) => (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton
+                          isActive={pathname === item.url}
+                          render={<Link to={item.url} />}
+                        >
+                          <item.icon />
+                          <span>{item.title}</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -103,6 +156,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     <Settings className="mr-2 h-4 w-4" />
                     Settings
                   </DropdownMenuItem>
+                  {user?.is_superuser && (
+                    <>
+                      <DropdownMenuItem onClick={() => navigate("/admin")}>
+                        <Shield className="mr-2 h-4 w-4" />
+                        Admin Settings
+                      </DropdownMenuItem>
+                    </>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={logout}>
                     <LogOut className="mr-2 h-4 w-4" />
@@ -115,15 +176,19 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
+        <header className="sticky top-0 z-10 flex h-12 shrink-0 items-center gap-2 border-b bg-background px-4">
           <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
+          <Separator orientation="vertical" className="mr-2 !h-full" />
           <span className="text-sm font-medium">
-            {navItems.find((i) => i.url === pathname)?.title ??
-              (pathname === "/settings" ? "Settings" : "")}
+            {ALL_NAV_ITEMS.find((i) => i.url === pathname)?.title ??
+              (pathname === "/settings"
+                ? "Settings"
+                : pathname === "/admin"
+                  ? "Admin Settings"
+                  : "")}
           </span>
         </header>
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto p-6">{children}</main>
       </SidebarInset>
     </SidebarProvider>
   )
