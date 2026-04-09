@@ -1,10 +1,12 @@
 import uuid
 from datetime import date
+from decimal import Decimal
 
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.expense import Expense
+from app.repositories.account_repository import AccountRepository
 from app.repositories.expense_repository import ExpenseRepository
 from app.schemas.expense import ExpenseCreate, ExpenseUpdate
 
@@ -12,6 +14,45 @@ from app.schemas.expense import ExpenseCreate, ExpenseUpdate
 class ExpenseService:
     def __init__(self, db: AsyncSession):
         self.repo = ExpenseRepository(db)
+        self.account_repo = AccountRepository(db)
+
+    async def _apply_balance(
+        self, txn_type: str, amount: Decimal, account_id, transfer_to_id, sign: int = 1
+    ) -> None:
+        """Adjust account balances. sign=1 for apply, sign=-1 for reverse.
+
+        For credit_card accounts, expenses increase debt instead of
+        decreasing balance, and income decreases debt.
+        """
+        if txn_type == "income" and account_id:
+            acct = await self.account_repo.get_by_id(account_id)
+            if acct:
+                if acct.type == "credit_card":
+                    acct.debt -= amount * sign
+                else:
+                    acct.balance += amount * sign
+        elif txn_type == "expense" and account_id:
+            acct = await self.account_repo.get_by_id(account_id)
+            if acct:
+                if acct.type == "credit_card":
+                    acct.debt += amount * sign
+                else:
+                    acct.balance -= amount * sign
+        elif txn_type == "transfer":
+            if account_id:
+                src = await self.account_repo.get_by_id(account_id)
+                if src:
+                    if src.type == "credit_card":
+                        src.debt += amount * sign
+                    else:
+                        src.balance -= amount * sign
+            if transfer_to_id:
+                dst = await self.account_repo.get_by_id(transfer_to_id)
+                if dst:
+                    if dst.type == "credit_card":
+                        dst.debt -= amount * sign
+                    else:
+                        dst.balance += amount * sign
 
     async def list_expenses(
         self,
@@ -33,7 +74,11 @@ class ExpenseService:
             type=data.type,
             description=data.description,
             date=data.date,
-            payment_method_id=data.payment_method_id,
+            account_id=data.account_id,
+            transfer_to_account_id=data.transfer_to_account_id,
+        )
+        await self._apply_balance(
+            data.type, data.amount, data.account_id, data.transfer_to_account_id
         )
         return await self.repo.create(expense)
 
@@ -45,8 +90,23 @@ class ExpenseService:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Expense not found"
             )
+        # Reverse old balance effect
+        await self._apply_balance(
+            expense.type,
+            expense.amount,
+            expense.account_id,
+            expense.transfer_to_account_id,
+            sign=-1,
+        )
         for field, value in data.model_dump(exclude_unset=True).items():
             setattr(expense, field, value)
+        # Apply new balance effect
+        await self._apply_balance(
+            expense.type,
+            expense.amount,
+            expense.account_id,
+            expense.transfer_to_account_id,
+        )
         return await self.repo.update(expense)
 
     async def delete_expense(self, expense_id: uuid.UUID, user_id: uuid.UUID) -> None:
@@ -55,6 +115,14 @@ class ExpenseService:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Expense not found"
             )
+        # Reverse balance effect
+        await self._apply_balance(
+            expense.type,
+            expense.amount,
+            expense.account_id,
+            expense.transfer_to_account_id,
+            sign=-1,
+        )
         await self.repo.delete(expense)
 
     async def total_for_range(

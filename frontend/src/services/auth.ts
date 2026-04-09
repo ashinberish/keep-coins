@@ -22,9 +22,10 @@ export interface UserResponse {
   email: string
   username: string
   is_active: boolean
+  is_superuser: boolean
   is_email_verified: boolean
   currency: string
-  default_payment_method_id: string | null
+  default_account_id: string | null
   created_at: string
 }
 
@@ -53,9 +54,9 @@ export const authApi = {
   updateCurrency: (currency: string) =>
     api.patch<UserResponse>("/auth/me/currency", { currency }),
 
-  updateDefaultPaymentMethod: (id: string | null) =>
-    api.patch<UserResponse>("/auth/me/default-payment-method", {
-      default_payment_method_id: id,
+  updateDefaultAccount: (id: string | null) =>
+    api.patch<UserResponse>("/auth/me/default-account", {
+      default_account_id: id,
     }),
 
   updateUsername: (username: string) =>

@@ -28,6 +28,7 @@ class CategoryService:
             name=data.name,
             emoji=data.emoji,
             description=data.description,
+            category_type=data.category_type,
             user_id=user_id,
         )
         return await self.repo.create(category)

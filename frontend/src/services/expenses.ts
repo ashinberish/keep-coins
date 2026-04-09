@@ -3,24 +3,27 @@ import api from "./api"
 export interface Expense {
   id: string
   user_id: string
-  category_id: string
+  category_id: string | null
   amount: string
-  type: "expense" | "income"
+  type: "expense" | "income" | "transfer"
   description: string | null
   date: string
   created_at: string
   category_name: string | null
-  payment_method_id: string | null
-  payment_method_name: string | null
+  account_id: string | null
+  account_name: string | null
+  transfer_to_account_id: string | null
+  transfer_to_account_name: string | null
 }
 
 export interface CreateExpensePayload {
-  category_id: string
+  category_id?: string
   amount: number
-  type?: "expense" | "income"
+  type?: "expense" | "income" | "transfer"
   description?: string
   date: string
-  payment_method_id?: string
+  account_id?: string
+  transfer_to_account_id?: string
 }
 
 export interface PaginatedExpenses {
