@@ -8,6 +8,7 @@ class CategoryCreate(BaseModel):
     name: str
     emoji: str = "📁"
     description: str | None = None
+    category_type: str = "expense"
 
 
 class CategoryResponse(BaseModel):
@@ -15,6 +16,7 @@ class CategoryResponse(BaseModel):
     name: str
     emoji: str
     description: str | None
+    category_type: str
     user_id: uuid.UUID | None
     created_at: datetime
 

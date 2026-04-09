@@ -29,9 +29,10 @@ class UserResponse(BaseModel):
     email: str
     username: str
     is_active: bool
+    is_superuser: bool = False
     is_email_verified: bool = False
     currency: str = "USD"
-    default_payment_method_id: uuid.UUID | None = None
+    default_account_id: uuid.UUID | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -41,8 +42,8 @@ class UpdateCurrencyRequest(BaseModel):
     currency: str
 
 
-class UpdateDefaultPaymentMethodRequest(BaseModel):
-    default_payment_method_id: uuid.UUID | None = None
+class UpdateDefaultAccountRequest(BaseModel):
+    default_account_id: uuid.UUID | None = None
 
 
 class UpdateUsernameRequest(BaseModel):

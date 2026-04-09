@@ -24,9 +24,9 @@ class User(Base):
     currency: Mapped[str] = mapped_column(
         String(3), default="USD", server_default="USD"
     )
-    default_payment_method_id: Mapped[uuid.UUID | None] = mapped_column(
+    default_account_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("payment_methods.id", ondelete="SET NULL"),
+        ForeignKey("accounts.id", ondelete="SET NULL"),
         nullable=True,
     )
     is_email_verified: Mapped[bool] = mapped_column(

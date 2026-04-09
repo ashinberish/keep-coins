@@ -7,12 +7,13 @@ from pydantic import BaseModel
 
 
 class ExpenseCreate(BaseModel):
-    category_id: uuid.UUID
+    category_id: uuid.UUID | None = None
     amount: Decimal
     type: str = "expense"
     description: str | None = None
     date: Date
-    payment_method_id: uuid.UUID | None = None
+    account_id: uuid.UUID | None = None
+    transfer_to_account_id: uuid.UUID | None = None
 
 
 class ExpenseUpdate(BaseModel):
@@ -21,21 +22,24 @@ class ExpenseUpdate(BaseModel):
     type: str | None = None
     description: str | None = None
     date: Date | None = None
-    payment_method_id: uuid.UUID | None = None
+    account_id: uuid.UUID | None = None
+    transfer_to_account_id: uuid.UUID | None = None
 
 
 class ExpenseResponse(BaseModel):
     id: uuid.UUID
     user_id: uuid.UUID
-    category_id: uuid.UUID
+    category_id: uuid.UUID | None
     amount: Decimal
     type: str = "expense"
     description: str | None
     date: Date
     created_at: datetime
     category_name: str | None = None
-    payment_method_id: uuid.UUID | None = None
-    payment_method_name: str | None = None
+    account_id: uuid.UUID | None = None
+    account_name: str | None = None
+    transfer_to_account_id: uuid.UUID | None = None
+    transfer_to_account_name: str | None = None
 
     model_config = {"from_attributes": True}
 

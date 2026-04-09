@@ -17,7 +17,7 @@ interface AuthState {
   clearError: () => void
   setPendingVerificationEmail: (email: string | null) => void
   setCurrency: (currency: string) => Promise<void>
-  setDefaultPaymentMethod: (id: string | null) => Promise<void>
+  setDefaultAccount: (id: string | null) => Promise<void>
   updateUsername: (username: string) => Promise<void>
   deleteAccount: () => Promise<void>
 }
@@ -118,8 +118,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ user: data })
   },
 
-  setDefaultPaymentMethod: async (id) => {
-    const { data } = await authApi.updateDefaultPaymentMethod(id)
+  setDefaultAccount: async (id) => {
+    const { data } = await authApi.updateDefaultAccount(id)
     set({ user: data })
   },
 

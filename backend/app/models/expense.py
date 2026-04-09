@@ -18,20 +18,25 @@ class Expense(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
-    category_id: Mapped[uuid.UUID] = mapped_column(
+    category_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("categories.id", ondelete="RESTRICT"),
-        nullable=False,
+        ForeignKey("categories.id", ondelete="SET NULL"),
+        nullable=True,
     )
     amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     type: Mapped[str] = mapped_column(
-        String(7), nullable=False, default="expense", server_default="expense"
+        String(10), nullable=False, default="expense", server_default="expense"
     )
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     date: Mapped[date] = mapped_column(Date, nullable=False)
-    payment_method_id: Mapped[uuid.UUID | None] = mapped_column(
+    account_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("payment_methods.id", ondelete="SET NULL"),
+        ForeignKey("accounts.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    transfer_to_account_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("accounts.id", ondelete="SET NULL"),
         nullable=True,
     )
     created_at: Mapped[datetime] = mapped_column(

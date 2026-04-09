@@ -12,7 +12,7 @@ from app.core.security import (
     hash_password,
     verify_password,
 )
-from app.models.payment_method import PaymentMethod
+from app.models.account import Account
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
 from app.schemas.auth import TokenResponse, UserCreate, UserLogin
@@ -53,15 +53,15 @@ class AuthService:
         code = self._generate_and_set_code(user)
         user = await self.repo.create(user)
 
-        # Create default CASH payment method and set it as default
-        cash_pm = PaymentMethod(
+        # Create default CASH account and set it as default
+        cash_acct = Account(
             user_id=user.id,
             name="Cash",
             icon="💵",
         )
-        self.repo.db.add(cash_pm)
+        self.repo.db.add(cash_acct)
         await self.repo.db.flush()
-        user.default_payment_method_id = cash_pm.id
+        user.default_account_id = cash_acct.id
         await self.repo.db.commit()
         await self.repo.db.refresh(user)
 

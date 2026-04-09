@@ -38,23 +38,21 @@ import {
   stripFormatting,
 } from "@/lib/currency"
 import { cn } from "@/lib/utils"
+import { accountsApi, type Account } from "@/services/accounts"
 import { categoriesApi, type Category } from "@/services/categories"
 import { expensesApi, type Expense, type QuickStats } from "@/services/expenses"
-import {
-  paymentMethodsApi,
-  type PaymentMethod,
-} from "@/services/payment-methods"
 import { useAuthStore } from "@/store/auth"
 import { format } from "date-fns"
 import {
+  ArrowDownRight,
+  ArrowUpRight,
   CalendarIcon,
   ChevronLeft,
   ChevronRight,
   Pencil,
   Receipt,
+  Scale,
   Trash2,
-  TrendingUp,
-  Wallet,
 } from "lucide-react"
 import { useEffect, useState, type FormEvent } from "react"
 import { toast } from "sonner"
@@ -62,11 +60,11 @@ import { toast } from "sonner"
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [categories, setCategories] = useState<Category[]>([])
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
+  const [accounts, setAccounts] = useState<Account[]>([])
   const [loading, setLoading] = useState(true)
   const currency = useAuthStore((s) => s.user?.currency ?? "USD")
-  const defaultPmId = useAuthStore(
-    (s) => s.user?.default_payment_method_id ?? null
+  const defaultAccountId = useAuthStore(
+    (s) => s.user?.default_account_id ?? null
   )
 
   // pagination
@@ -87,12 +85,22 @@ export default function ExpensesPage() {
 
   // form state
   const [amount, setAmount] = useState("")
-  const [txnType, setTxnType] = useState<"expense" | "income">("expense")
+  const [txnType, setTxnType] = useState<"expense" | "income" | "transfer">(
+    "expense"
+  )
   const [categoryId, setCategoryId] = useState<string | null>(null)
-  const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null)
+  const [accountId, setAccountId] = useState<string | null>(null)
+  const [transferToId, setTransferToId] = useState<string | null>(null)
   const [description, setDescription] = useState("")
   const [date, setDate] = useState<Date | undefined>(new Date())
   const [submitting, setSubmitting] = useState(false)
+
+  const expenseCategories = categories.filter(
+    (c) => c.category_type === "expense"
+  )
+  const incomeCategories = categories.filter(
+    (c) => c.category_type === "income"
+  )
 
   async function fetchExpenses(
     p: number,
@@ -125,10 +133,10 @@ export default function ExpensesPage() {
 
   async function fetchData() {
     try {
-      const [expRes, catRes, pmRes] = await Promise.all([
+      const [expRes, catRes, acctRes] = await Promise.all([
         expensesApi.list(1, PAGE_SIZE, period),
         categoriesApi.list(),
-        paymentMethodsApi.list(),
+        accountsApi.list(),
         fetchStats(),
       ])
       setExpenses(expRes.data.items)
@@ -136,12 +144,15 @@ export default function ExpensesPage() {
       setTotal(expRes.data.total)
       setPage(expRes.data.page)
       setCategories(catRes.data)
-      setPaymentMethods(pmRes.data)
+      setAccounts(acctRes.data)
       if (!categoryId && catRes.data.length > 0) {
-        setCategoryId(catRes.data[0].id)
+        const expCats = catRes.data.filter(
+          (c: Category) => c.category_type === "expense"
+        )
+        if (expCats.length > 0) setCategoryId(expCats[0].id)
       }
-      if (!paymentMethodId && defaultPmId) {
-        setPaymentMethodId(defaultPmId)
+      if (!accountId && defaultAccountId) {
+        setAccountId(defaultAccountId)
       }
     } catch {
       toast.error("Failed to load data")
@@ -162,23 +173,37 @@ export default function ExpensesPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    if (!amount || !categoryId || !date) return
+    if (!amount || !date) return
+    if (txnType === "expense" && !categoryId) return
+    if (txnType === "transfer" && (!accountId || !transferToId)) return
     setSubmitting(true)
     try {
       await expensesApi.create({
         amount: parseFloat(stripFormatting(amount, currency)),
         type: txnType,
-        category_id: categoryId,
+        category_id:
+          txnType !== "transfer" && categoryId ? categoryId : undefined,
         description: description || undefined,
         date: format(date, "yyyy-MM-dd"),
-        payment_method_id: paymentMethodId || undefined,
+        account_id: accountId || undefined,
+        transfer_to_account_id:
+          txnType === "transfer" && transferToId ? transferToId : undefined,
       })
-      toast.success(txnType === "income" ? "Income added" : "Expense added")
+      toast.success(
+        txnType === "income"
+          ? "Income added"
+          : txnType === "transfer"
+            ? "Transfer added"
+            : "Expense added"
+      )
       setAmount("")
       setTxnType("expense")
       setDescription("")
-      setCategoryId(categories.length > 0 ? categories[0].id : null)
-      setPaymentMethodId(defaultPmId)
+      setCategoryId(
+        expenseCategories.length > 0 ? expenseCategories[0].id : null
+      )
+      setAccountId(defaultAccountId)
+      setTransferToId(null)
       setDate(new Date())
       await Promise.all([fetchExpenses(1), fetchStats()])
     } catch {
@@ -202,9 +227,12 @@ export default function ExpensesPage() {
   const [editOpen, setEditOpen] = useState(false)
   const [editExpense, setEditExpense] = useState<Expense | null>(null)
   const [editAmount, setEditAmount] = useState("")
-  const [editType, setEditType] = useState<"expense" | "income">("expense")
+  const [editType, setEditType] = useState<"expense" | "income" | "transfer">(
+    "expense"
+  )
   const [editCategoryId, setEditCategoryId] = useState<string | null>(null)
   const [editPmId, setEditPmId] = useState<string | null>(null)
+  const [editTransferToId, setEditTransferToId] = useState<string | null>(null)
   const [editDescription, setEditDescription] = useState("")
   const [editDate, setEditDate] = useState<Date | undefined>(undefined)
   const [editSubmitting, setEditSubmitting] = useState(false)
@@ -216,7 +244,8 @@ export default function ExpensesPage() {
     )
     setEditType(exp.type)
     setEditCategoryId(exp.category_id)
-    setEditPmId(exp.payment_method_id)
+    setEditPmId(exp.account_id)
+    setEditTransferToId(exp.transfer_to_account_id)
     setEditDescription(exp.description ?? "")
     setEditDate(new Date(exp.date + "T00:00:00"))
     setEditOpen(true)
@@ -224,16 +253,25 @@ export default function ExpensesPage() {
 
   async function handleEditSubmit(e: FormEvent) {
     e.preventDefault()
-    if (!editExpense || !editAmount || !editCategoryId || !editDate) return
+    if (!editExpense || !editAmount || !editDate) return
+    if (editType === "expense" && !editCategoryId) return
+    if (editType === "transfer" && (!editPmId || !editTransferToId)) return
     setEditSubmitting(true)
     try {
       await expensesApi.update(editExpense.id, {
         amount: parseFloat(stripFormatting(editAmount, currency)),
         type: editType,
-        category_id: editCategoryId,
+        category_id:
+          editType !== "transfer" && editCategoryId
+            ? editCategoryId
+            : undefined,
         description: editDescription || undefined,
         date: format(editDate, "yyyy-MM-dd"),
-        payment_method_id: editPmId || undefined,
+        account_id: editPmId || undefined,
+        transfer_to_account_id:
+          editType === "transfer" && editTransferToId
+            ? editTransferToId
+            : undefined,
       })
       toast.success("Expense updated")
       setEditOpen(false)
@@ -248,44 +286,84 @@ export default function ExpensesPage() {
     }
   }
 
+  const monthBalance = stats ? stats.month_income - stats.month_total : 0
+
   return (
     <div className="space-y-6">
-      <Card>
-        <CardContent className="pt-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Type toggle */}
-            <div className="flex items-center justify-center">
-              <div className="inline-flex rounded-lg bg-muted p-1">
-                <button
-                  type="button"
-                  className={cn(
-                    "rounded-md px-4 py-1.5 text-sm font-medium transition-colors",
-                    txnType === "expense"
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                  onClick={() => setTxnType("expense")}
-                >
+      {/* Overview cards */}
+      {stats && (
+        <div className="grid grid-cols-3 gap-3">
+          <Card className="py-3">
+            <CardContent className="px-4">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium text-muted-foreground">
                   Expense
-                </button>
-                <button
-                  type="button"
-                  className={cn(
-                    "rounded-md px-4 py-1.5 text-sm font-medium transition-colors",
-                    txnType === "income"
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                  onClick={() => setTxnType("income")}
-                >
-                  Income
-                </button>
+                </p>
+                <ArrowDownRight className="h-5 w-5 text-red-500" />
               </div>
-            </div>
+              <p className="mt-1 font-mono text-xl font-bold tabular-nums">
+                {currencySymbol(currency)}
+                {formatAmount(stats.month_total, currency)}
+              </p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">
+                Today: {currencySymbol(currency)}
+                {formatAmount(stats.today_total, currency)}
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="py-3">
+            <CardContent className="px-4">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium text-muted-foreground">
+                  Income
+                </p>
+                <ArrowUpRight className="h-5 w-5 text-emerald-500" />
+              </div>
+              <p className="mt-1 font-mono text-xl font-bold text-emerald-600 tabular-nums dark:text-emerald-400">
+                {currencySymbol(currency)}
+                {formatAmount(stats.month_income, currency)}
+              </p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">
+                Today: {currencySymbol(currency)}
+                {formatAmount(stats.today_income, currency)}
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="py-3">
+            <CardContent className="px-4">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium text-muted-foreground">
+                  Balance
+                </p>
+                <Scale className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <p
+                className={cn(
+                  "mt-1 font-mono text-xl font-bold tabular-nums",
+                  monthBalance >= 0
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-red-600 dark:text-red-400"
+                )}
+              >
+                {monthBalance < 0 ? "-" : ""}
+                {currencySymbol(currency)}
+                {formatAmount(Math.abs(monthBalance), currency)}
+              </p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">
+                This month
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
-            {/* Amount — hero input */}
-            <div className="flex items-center justify-center gap-1 py-4">
-              <span className="font-mono text-4xl font-light text-muted-foreground">
+      {/* Add transaction form */}
+      <Card>
+        <CardContent className="pt-6 pb-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Amount hero */}
+            <div className="flex items-baseline justify-center gap-1 py-2">
+              <span className="font-mono text-3xl font-light text-muted-foreground">
                 {currencySymbol(currency)}
               </span>
               <input
@@ -298,43 +376,143 @@ export default function ExpensesPage() {
                   const formatted = formatInputAmount(raw, currency)
                   if (formatted !== null) setAmount(formatted)
                 }}
-                className="w-48 border-none bg-transparent text-center font-mono text-5xl font-semibold tracking-tight outline-none placeholder:text-muted-foreground/40"
+                className="w-44 border-none bg-transparent text-center font-mono text-4xl font-semibold tracking-tight outline-none placeholder:text-muted-foreground/40"
                 required
                 autoFocus
               />
             </div>
 
-            {/* Secondary fields row */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-5">
-              <div className="grid gap-1.5">
-                <Label className="text-xs tracking-wider text-muted-foreground uppercase">
-                  Category
+            {/* Type toggle — centered, full width tabs */}
+            <div className="mx-auto w-full max-w-xs">
+              <div className="grid w-full grid-cols-3 rounded-lg bg-muted p-1">
+                {(["expense", "income", "transfer"] as const).map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    className={cn(
+                      "rounded-md py-2 text-sm font-medium capitalize transition-colors",
+                      txnType === t
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                    onClick={() => {
+                      setTxnType(t)
+                      if (t === "expense") {
+                        setCategoryId(expenseCategories[0]?.id ?? null)
+                      } else if (t === "income") {
+                        setCategoryId(incomeCategories[0]?.id ?? null)
+                      } else {
+                        setCategoryId(null)
+                      }
+                    }}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Row 2: Context fields — adapts to type */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {/* Category (expense & income) */}
+              {txnType !== "transfer" && (
+                <div className="grid gap-1">
+                  <Label className="text-[11px] tracking-wider text-muted-foreground uppercase">
+                    Category
+                  </Label>
+                  <Select value={categoryId} onValueChange={setCategoryId}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select category">
+                        {categoryId
+                          ? (() => {
+                              const cat = categories.find(
+                                (c) => c.id === categoryId
+                              )
+                              return cat ? `${cat.emoji} ${cat.name}` : null
+                            })()
+                          : null}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent alignItemWithTrigger={false}>
+                      {(txnType === "income"
+                        ? incomeCategories
+                        : expenseCategories
+                      ).map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          <span className="mr-2">{c.emoji}</span>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* From Account (expense & transfer) / Account (income) */}
+              <div className="grid gap-1">
+                <Label className="text-[11px] tracking-wider text-muted-foreground uppercase">
+                  {txnType === "transfer" ? "From Account" : "Account"}
                 </Label>
-                <Select value={categoryId} onValueChange={setCategoryId}>
+                <Select value={accountId} onValueChange={setAccountId}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select category">
-                      {categoryId
+                    <SelectValue placeholder="None">
+                      {accountId
                         ? (() => {
-                            const cat = categories.find(
-                              (c) => c.id === categoryId
+                            const acct = accounts.find(
+                              (a) => a.id === accountId
                             )
-                            return cat ? `${cat.emoji} ${cat.name}` : null
+                            return acct ? `${acct.icon} ${acct.name}` : null
                           })()
-                        : null}
+                        : "None"}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent alignItemWithTrigger={false}>
-                    {categories.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        <span className="mr-2">{c.emoji}</span>
-                        {c.name}
+                    {accounts.map((acct) => (
+                      <SelectItem key={acct.id} value={acct.id}>
+                        <span className="mr-2">{acct.icon}</span>
+                        {acct.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid gap-1.5">
-                <Label className="text-xs tracking-wider text-muted-foreground uppercase">
+
+              {/* To Account (transfer only) */}
+              {txnType === "transfer" && (
+                <div className="grid gap-1">
+                  <Label className="text-[11px] tracking-wider text-muted-foreground uppercase">
+                    To Account
+                  </Label>
+                  <Select value={transferToId} onValueChange={setTransferToId}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select account">
+                        {transferToId
+                          ? (() => {
+                              const acct = accounts.find(
+                                (a) => a.id === transferToId
+                              )
+                              return acct ? `${acct.icon} ${acct.name}` : null
+                            })()
+                          : null}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent alignItemWithTrigger={false}>
+                      {accounts
+                        .filter((acct) => acct.id !== accountId)
+                        .map((acct) => (
+                          <SelectItem key={acct.id} value={acct.id}>
+                            <span className="mr-2">{acct.icon}</span>
+                            {acct.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Date */}
+              <div className="grid gap-1">
+                <Label className="text-[11px] tracking-wider text-muted-foreground uppercase">
                   Date
                 </Label>
                 <Popover>
@@ -362,128 +540,49 @@ export default function ExpensesPage() {
                   </PopoverContent>
                 </Popover>
               </div>
-              <div className="grid gap-1.5">
-                <Label className="text-xs tracking-wider text-muted-foreground uppercase">
+
+              {/* Description */}
+              <div className="grid gap-1">
+                <Label className="text-[11px] tracking-wider text-muted-foreground uppercase">
                   Description
                 </Label>
                 <Input
-                  placeholder="What was it for?"
+                  className="h-9"
+                  placeholder={
+                    txnType === "transfer"
+                      ? "Note (optional)"
+                      : "What was it for?"
+                  }
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                 />
               </div>
-              <div className="grid gap-1.5">
-                <Label className="text-xs tracking-wider text-muted-foreground uppercase">
-                  Payment Method
-                </Label>
-                <Select
-                  value={paymentMethodId}
-                  onValueChange={setPaymentMethodId}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="None">
-                      {paymentMethodId
-                        ? (() => {
-                            const pm = paymentMethods.find(
-                              (p) => p.id === paymentMethodId
-                            )
-                            return pm ? `${pm.icon} ${pm.name}` : null
-                          })()
-                        : "None"}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent alignItemWithTrigger={false}>
-                    {paymentMethods.map((pm) => (
-                      <SelectItem key={pm.id} value={pm.id}>
-                        <span className="mr-2">{pm.icon}</span>
-                        {pm.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-1.5">
-                <Label className="text-xs tracking-wider text-muted-foreground uppercase">
-                  &nbsp;
-                </Label>
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={submitting || !amount || !categoryId}
-                >
-                  {submitting
-                    ? "Adding…"
-                    : txnType === "income"
-                      ? "Add Income"
+            </div>
+
+            {/* Submit */}
+            <div className="flex justify-end">
+              <Button
+                type="submit"
+                disabled={
+                  submitting ||
+                  !amount ||
+                  (txnType === "expense" && !categoryId) ||
+                  (txnType === "income" && !categoryId) ||
+                  (txnType === "transfer" && (!accountId || !transferToId))
+                }
+              >
+                {submitting
+                  ? "Adding…"
+                  : txnType === "income"
+                    ? "Add Income"
+                    : txnType === "transfer"
+                      ? "Add Transfer"
                       : "Add Expense"}
-                </Button>
-              </div>
+              </Button>
             </div>
           </form>
         </CardContent>
       </Card>
-
-      {/* Quick stats */}
-      {stats && (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Today Spent
-              </CardTitle>
-              <Wallet className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <p className="font-mono text-2xl font-bold tabular-nums">
-                {currencySymbol(currency)}
-                {formatAmount(stats.today_total, currency)}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Today Income
-              </CardTitle>
-              <TrendingUp className="h-4 w-4 text-emerald-500" />
-            </CardHeader>
-            <CardContent>
-              <p className="font-mono text-2xl font-bold text-emerald-600 tabular-nums dark:text-emerald-400">
-                {currencySymbol(currency)}
-                {formatAmount(stats.today_income, currency)}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Month Spent
-              </CardTitle>
-              <Wallet className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <p className="font-mono text-2xl font-bold tabular-nums">
-                {currencySymbol(currency)}
-                {formatAmount(stats.month_total, currency)}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Month Income
-              </CardTitle>
-              <TrendingUp className="h-4 w-4 text-emerald-500" />
-            </CardHeader>
-            <CardContent>
-              <p className="font-mono text-2xl font-bold text-emerald-600 tabular-nums dark:text-emerald-400">
-                {currencySymbol(currency)}
-                {formatAmount(stats.month_income, currency)}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
@@ -581,7 +680,7 @@ export default function ExpensesPage() {
                     <TableHead>Type</TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead>Description</TableHead>
-                    <TableHead>Payment</TableHead>
+                    <TableHead>Account</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
                     <TableHead className="w-20" />
                   </TableRow>
@@ -596,35 +695,51 @@ export default function ExpensesPage() {
                             "inline-flex rounded-full px-2 py-0.5 text-xs font-medium",
                             expense.type === "income"
                               ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                              : "bg-red-500/10 text-red-600 dark:text-red-400"
+                              : expense.type === "transfer"
+                                ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                                : "bg-red-500/10 text-red-600 dark:text-red-400"
                           )}
                         >
-                          {expense.type === "income" ? "Income" : "Expense"}
+                          {expense.type === "income"
+                            ? "Income"
+                            : expense.type === "transfer"
+                              ? "Transfer"
+                              : "Expense"}
                         </span>
                       </TableCell>
                       <TableCell>
-                        {(() => {
-                          const cat = categories.find(
-                            (c) => c.id === expense.category_id
-                          )
-                          return cat
-                            ? `${cat.emoji} ${cat.name}`
-                            : (expense.category_name ?? "—")
-                        })()}
+                        {expense.category_id
+                          ? (() => {
+                              const cat = categories.find(
+                                (c) => c.id === expense.category_id
+                              )
+                              return cat
+                                ? `${cat.emoji} ${cat.name}`
+                                : (expense.category_name ?? "—")
+                            })()
+                          : "—"}
                       </TableCell>
                       <TableCell>{expense.description ?? "—"}</TableCell>
                       <TableCell>
-                        {expense.payment_method_name ?? "—"}
+                        {expense.type === "transfer"
+                          ? `${expense.account_name ?? "?"} → ${expense.transfer_to_account_name ?? "?"}`
+                          : (expense.account_name ?? "—")}
                       </TableCell>
                       <TableCell
                         className={cn(
                           "text-right font-mono font-medium tabular-nums",
                           expense.type === "income"
                             ? "text-emerald-600 dark:text-emerald-400"
-                            : ""
+                            : expense.type === "transfer"
+                              ? "text-blue-600 dark:text-blue-400"
+                              : ""
                         )}
                       >
-                        {expense.type === "income" ? "+" : "-"}
+                        {expense.type === "income"
+                          ? "+"
+                          : expense.type === "transfer"
+                            ? ""
+                            : "-"}
                         {currencySymbol(currency)}
                         {formatAmount(parseFloat(expense.amount), currency)}
                       </TableCell>
@@ -726,6 +841,18 @@ export default function ExpensesPage() {
                 >
                   Income
                 </button>
+                <button
+                  type="button"
+                  className={cn(
+                    "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                    editType === "transfer"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                  onClick={() => setEditType("transfer")}
+                >
+                  Transfer
+                </button>
               </div>
             </div>
             <div className="grid gap-1.5">
@@ -742,31 +869,66 @@ export default function ExpensesPage() {
                 required
               />
             </div>
-            <div className="grid gap-1.5">
-              <Label>Category</Label>
-              <Select value={editCategoryId} onValueChange={setEditCategoryId}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select category">
-                    {editCategoryId
-                      ? (() => {
-                          const cat = categories.find(
-                            (c) => c.id === editCategoryId
-                          )
-                          return cat ? `${cat.emoji} ${cat.name}` : null
-                        })()
-                      : null}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent alignItemWithTrigger={false}>
-                  {categories.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      <span className="mr-2">{c.emoji}</span>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {editType === "expense" && (
+              <div className="grid gap-1.5">
+                <Label>Category</Label>
+                <Select
+                  value={editCategoryId}
+                  onValueChange={setEditCategoryId}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select category">
+                      {editCategoryId
+                        ? (() => {
+                            const cat = categories.find(
+                              (c) => c.id === editCategoryId
+                            )
+                            return cat ? `${cat.emoji} ${cat.name}` : null
+                          })()
+                        : null}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent alignItemWithTrigger={false}>
+                    {expenseCategories.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        <span className="mr-2">{c.emoji}</span>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {editType === "income" && (
+              <div className="grid gap-1.5">
+                <Label>Category</Label>
+                <Select
+                  value={editCategoryId}
+                  onValueChange={setEditCategoryId}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select category">
+                      {editCategoryId
+                        ? (() => {
+                            const cat = categories.find(
+                              (c) => c.id === editCategoryId
+                            )
+                            return cat ? `${cat.emoji} ${cat.name}` : null
+                          })()
+                        : null}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent alignItemWithTrigger={false}>
+                    {incomeCategories.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        <span className="mr-2">{c.emoji}</span>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="grid gap-1.5">
               <Label>Date</Label>
               <Popover>
@@ -803,34 +965,72 @@ export default function ExpensesPage() {
               />
             </div>
             <div className="grid gap-1.5">
-              <Label>Payment Method</Label>
+              <Label>
+                {editType === "transfer" ? "From Account" : "Account"}
+              </Label>
               <Select value={editPmId} onValueChange={setEditPmId}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="None">
                     {editPmId
                       ? (() => {
-                          const pm = paymentMethods.find(
-                            (p) => p.id === editPmId
-                          )
-                          return pm ? `${pm.icon} ${pm.name}` : null
+                          const acct = accounts.find((a) => a.id === editPmId)
+                          return acct ? `${acct.icon} ${acct.name}` : null
                         })()
                       : "None"}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent alignItemWithTrigger={false}>
-                  {paymentMethods.map((pm) => (
-                    <SelectItem key={pm.id} value={pm.id}>
-                      <span className="mr-2">{pm.icon}</span>
-                      {pm.name}
+                  {accounts.map((acct) => (
+                    <SelectItem key={acct.id} value={acct.id}>
+                      <span className="mr-2">{acct.icon}</span>
+                      {acct.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+            {editType === "transfer" && (
+              <div className="grid gap-1.5">
+                <Label>To Account</Label>
+                <Select
+                  value={editTransferToId}
+                  onValueChange={setEditTransferToId}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select account">
+                      {editTransferToId
+                        ? (() => {
+                            const acct = accounts.find(
+                              (a) => a.id === editTransferToId
+                            )
+                            return acct ? `${acct.icon} ${acct.name}` : null
+                          })()
+                        : null}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent alignItemWithTrigger={false}>
+                    {accounts
+                      .filter((acct) => acct.id !== editPmId)
+                      .map((acct) => (
+                        <SelectItem key={acct.id} value={acct.id}>
+                          <span className="mr-2">{acct.icon}</span>
+                          {acct.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <SheetFooter>
               <Button
                 type="submit"
-                disabled={editSubmitting || !editAmount || !editCategoryId}
+                disabled={
+                  editSubmitting ||
+                  !editAmount ||
+                  (editType === "expense" && !editCategoryId) ||
+                  (editType === "income" && !editCategoryId) ||
+                  (editType === "transfer" && (!editPmId || !editTransferToId))
+                }
               >
                 {editSubmitting ? "Saving…" : "Save Changes"}
               </Button>

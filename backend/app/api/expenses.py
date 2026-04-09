@@ -96,7 +96,8 @@ async def create_expense(
         description=expense.description,
         date=expense.date,
         created_at=expense.created_at,
-        payment_method_id=expense.payment_method_id,
+        account_id=expense.account_id,
+        transfer_to_account_id=expense.transfer_to_account_id,
     )
 
 
@@ -120,7 +121,8 @@ async def update_expense(
         description=expense.description,
         date=expense.date,
         created_at=expense.created_at,
-        payment_method_id=expense.payment_method_id,
+        account_id=expense.account_id,
+        transfer_to_account_id=expense.transfer_to_account_id,
     )
 
 
