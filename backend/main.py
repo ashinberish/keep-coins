@@ -10,7 +10,15 @@ from app.core.config import settings
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="KeepCoins API", version="0.1.0")
+is_dev = settings.MODE == "development"
+
+app = FastAPI(
+    title="KeepCoins API",
+    version="0.1.0",
+    docs_url="/docs" if is_dev else None,
+    redoc_url="/redoc" if is_dev else None,
+    openapi_url="/openapi.json" if is_dev else None,
+)
 
 app.add_middleware(
     CORSMiddleware,

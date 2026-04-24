@@ -139,10 +139,18 @@ function AccountFormFields({
             <SelectValue />
           </SelectTrigger>
           <SelectContent alignItemWithTrigger={false}>
-            <SelectItem value="bank">Bank / Savings</SelectItem>
-            <SelectItem value="cash">Cash</SelectItem>
-            <SelectItem value="debit_card">Debit Card</SelectItem>
-            <SelectItem value="credit_card">Credit Card</SelectItem>
+            <SelectItem value="bank" label="Bank / Savings">
+              Bank / Savings
+            </SelectItem>
+            <SelectItem value="cash" label="Cash">
+              Cash
+            </SelectItem>
+            <SelectItem value="debit_card" label="Debit Card">
+              Debit Card
+            </SelectItem>
+            <SelectItem value="credit_card" label="Credit Card">
+              Credit Card
+            </SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -159,7 +167,11 @@ function AccountFormFields({
             </SelectTrigger>
             <SelectContent alignItemWithTrigger={false}>
               {bankAccounts.map((a) => (
-                <SelectItem key={a.id} value={a.id}>
+                <SelectItem
+                  key={a.id}
+                  value={a.id}
+                  label={`${a.icon} ${a.name}`}
+                >
                   {a.icon} {a.name}
                 </SelectItem>
               ))}

@@ -324,8 +324,12 @@ export default function OnboardingPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="expense">Expense</SelectItem>
-                    <SelectItem value="income">Income</SelectItem>
+                    <SelectItem value="expense" label="Expense">
+                      Expense
+                    </SelectItem>
+                    <SelectItem value="income" label="Income">
+                      Income
+                    </SelectItem>
                   </SelectContent>
                 </Select>
                 <Button
@@ -422,7 +426,11 @@ export default function OnboardingPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {ACCOUNT_TYPES.map((t) => (
-                      <SelectItem key={t.value} value={t.value}>
+                      <SelectItem
+                        key={t.value}
+                        value={t.value}
+                        label={`${t.icon} ${t.label}`}
+                      >
                         {t.icon} {t.label}
                       </SelectItem>
                     ))}
