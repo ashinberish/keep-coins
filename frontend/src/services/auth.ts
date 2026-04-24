@@ -24,6 +24,7 @@ export interface UserResponse {
   is_active: boolean
   is_superuser: boolean
   is_email_verified: boolean
+  is_onboarded: boolean
   currency: string
   default_account_id: string | null
   created_at: string
@@ -44,7 +45,7 @@ export const authApi = {
   login: (data: LoginPayload) => api.post<TokenResponse>("/auth/login", data),
 
   verifyEmail: (data: VerifyEmailPayload) =>
-    api.post<{ message: string }>("/auth/verify-email", data),
+    api.post<TokenResponse>("/auth/verify-email", data),
 
   resendVerification: (data: ResendCodePayload) =>
     api.post<{ message: string }>("/auth/resend-verification", data),
@@ -63,4 +64,7 @@ export const authApi = {
     api.patch<UserResponse>("/auth/me/username", { username }),
 
   deleteAccount: () => api.delete("/auth/me"),
+
+  completeOnboarding: () =>
+    api.post<UserResponse>("/auth/me/onboarding-complete"),
 }

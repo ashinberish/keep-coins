@@ -1,11 +1,14 @@
 import api from "./api"
 
+export type AccountType = "bank" | "cash" | "debit_card" | "credit_card"
+
 export interface Account {
   id: string
   user_id: string
   name: string
   icon: string
-  type: "bank" | "cash" | "credit_card"
+  type: AccountType
+  linked_account_id: string | null
   credit_limit: number | null
   balance: number
   debt: number
@@ -15,7 +18,8 @@ export interface Account {
 export interface CreateAccountPayload {
   name: string
   icon?: string
-  type?: "bank" | "cash" | "credit_card"
+  type?: AccountType
+  linked_account_id?: string
   credit_limit?: number
   balance?: number
   debt?: number
@@ -24,7 +28,8 @@ export interface CreateAccountPayload {
 export interface UpdateAccountPayload {
   name?: string
   icon?: string
-  type?: string
+  type?: AccountType
+  linked_account_id?: string | null
   credit_limit?: number | null
   balance?: number
   debt?: number
