@@ -112,6 +112,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   fetchUser: async () => {
+    if (useAuthStore.getState().user) return
     set({ isLoading: true })
     try {
       const { data } = await authApi.getMe()

@@ -71,9 +71,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const [configLoaded, setConfigLoaded] = useState(false)
 
   useEffect(() => {
+    let ignore = false
     configApi
       .list()
       .then(({ data }) => {
+        if (ignore) return
         setEnabledKeys(
           new Set(
             data
@@ -86,7 +88,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         )
       })
       .catch(() => {})
-      .finally(() => setConfigLoaded(true))
+      .finally(() => {
+        if (!ignore) setConfigLoaded(true)
+      })
+    return () => {
+      ignore = true
+    }
   }, [])
 
   const initials = user?.username

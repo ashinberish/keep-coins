@@ -54,7 +54,7 @@ import {
   Scale,
   Trash2,
 } from "lucide-react"
-import { useEffect, useState, type FormEvent } from "react"
+import { useEffect, useRef, useState, type FormEvent } from "react"
 import { toast } from "sonner"
 
 export default function ExpensesPage() {
@@ -161,11 +161,23 @@ export default function ExpensesPage() {
     }
   }
 
+  const initialMount = useRef(true)
+
   useEffect(() => {
-    fetchData()
+    let ignore = false
+    fetchData().then(() => {
+      if (ignore) return
+    })
+    return () => {
+      ignore = true
+    }
   }, [])
 
   useEffect(() => {
+    if (initialMount.current) {
+      initialMount.current = false
+      return
+    }
     if (period !== "custom") {
       fetchExpenses(1, period)
     }

@@ -489,6 +489,7 @@ export default function GroupDetailPage() {
                 <Label>Split</Label>
                 <Select
                   value={expSplitType}
+                  items={[{ value: "equal", label: "Split Equally" }]}
                   onValueChange={(v) => setExpSplitType(v ?? "equal")}
                 >
                   <SelectTrigger>
@@ -546,6 +547,9 @@ export default function GroupDetailPage() {
                 <Label>Pay To</Label>
                 <Select
                   value={settleTo}
+                  items={group.members
+                    .filter((m) => m.user_id !== user?.id)
+                    .map((m) => ({ value: m.user_id, label: m.username }))}
                   onValueChange={(v) => setSettleTo(v ?? "")}
                 >
                   <SelectTrigger>
