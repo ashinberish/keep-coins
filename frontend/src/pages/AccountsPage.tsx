@@ -1,3 +1,4 @@
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -27,9 +28,9 @@ import { formatCurrency } from "@/lib/currency"
 import {
   accountsApi,
   type Account,
+  type AccountType,
 } from "@/services/accounts"
 import { useAuthStore } from "@/store/auth"
-import { Badge } from "@/components/ui/badge"
 import { Pencil, Plus, Trash2 } from "lucide-react"
 import { useEffect, useState, type FormEvent } from "react"
 import { toast } from "sonner"
@@ -47,6 +48,182 @@ const ICON_OPTIONS = [
   "📲",
 ]
 
+const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
+  bank: "Bank / Savings",
+  cash: "Cash",
+  debit_card: "Debit Card",
+  credit_card: "Credit Card",
+}
+
+const ACCOUNT_TYPE_BADGE: Record<
+  AccountType,
+  "secondary" | "destructive" | "outline"
+> = {
+  bank: "secondary",
+  cash: "secondary",
+  debit_card: "outline",
+  credit_card: "destructive",
+}
+
+type FormState = {
+  name: string
+  icon: string
+  type: AccountType
+  linkedAccountId: string
+  creditLimit: string
+  balance: string
+  debt: string
+}
+
+function AccountFormFields({
+  form,
+  onChange,
+  iconPickerOpen,
+  setIconPickerOpen,
+  bankAccounts,
+}: {
+  form: FormState
+  onChange: (patch: Partial<FormState>) => void
+  iconPickerOpen: boolean
+  setIconPickerOpen: (v: boolean) => void
+  bankAccounts: Account[]
+}) {
+  return (
+    <>
+      <div className="flex items-end gap-3">
+        <div className="grid gap-1.5">
+          <Label>Icon</Label>
+          <Popover open={iconPickerOpen} onOpenChange={setIconPickerOpen}>
+            <PopoverTrigger
+              render={<Button variant="outline" className="h-9 w-16 text-lg" />}
+            >
+              {form.icon || "💳"}
+            </PopoverTrigger>
+            <PopoverContent className="w-64 p-2" align="start">
+              <div className="grid grid-cols-8 gap-1">
+                {ICON_OPTIONS.map((e) => (
+                  <button
+                    key={e}
+                    type="button"
+                    className="flex h-8 w-8 items-center justify-center rounded-md text-lg hover:bg-accent"
+                    onClick={() => {
+                      onChange({ icon: e })
+                      setIconPickerOpen(false)
+                    }}
+                  >
+                    {e}
+                  </button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
+        <div className="grid flex-1 gap-1.5">
+          <Label>Name</Label>
+          <Input
+            placeholder="e.g. Savings Account"
+            value={form.name}
+            onChange={(e) => onChange({ name: e.target.value })}
+            required
+          />
+        </div>
+      </div>
+
+      <div className="grid gap-1.5">
+        <Label>Type</Label>
+        <Select
+          value={form.type}
+          onValueChange={(v) => onChange({ type: v as AccountType })}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent alignItemWithTrigger={false}>
+            <SelectItem value="bank">Bank / Savings</SelectItem>
+            <SelectItem value="cash">Cash</SelectItem>
+            <SelectItem value="debit_card">Debit Card</SelectItem>
+            <SelectItem value="credit_card">Credit Card</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {form.type === "debit_card" && (
+        <div className="grid gap-1.5">
+          <Label>Linked Bank Account</Label>
+          <Select
+            value={form.linkedAccountId}
+            onValueChange={(v) => onChange({ linkedAccountId: v })}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select bank account…" />
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false}>
+              {bankAccounts.map((a) => (
+                <SelectItem key={a.id} value={a.id}>
+                  {a.icon} {a.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Expenses on this card will debit the linked bank account.
+          </p>
+        </div>
+      )}
+
+      {form.type === "credit_card" && (
+        <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-1.5">
+            <Label>Credit Limit</Label>
+            <Input
+              type="number"
+              step="0.01"
+              placeholder="0.00"
+              value={form.creditLimit}
+              onChange={(e) => onChange({ creditLimit: e.target.value })}
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label>Current Balance Used</Label>
+            <Input
+              type="number"
+              step="0.01"
+              placeholder="0.00"
+              value={form.debt}
+              onChange={(e) => onChange({ debt: e.target.value })}
+            />
+          </div>
+        </div>
+      )}
+
+      {(form.type === "bank" || form.type === "cash") && (
+        <div className="grid gap-1.5">
+          <Label>Current Balance</Label>
+          <Input
+            type="number"
+            step="0.01"
+            placeholder="0.00"
+            value={form.balance}
+            onChange={(e) => onChange({ balance: e.target.value })}
+          />
+        </div>
+      )}
+    </>
+  )
+}
+
+function emptyForm(): FormState {
+  return {
+    name: "",
+    icon: "",
+    type: "bank" as AccountType,
+    linkedAccountId: "",
+    creditLimit: "",
+    balance: "",
+    debt: "",
+  }
+}
+
 export default function AccountsPage() {
   const currency = useAuthStore((s) => s.user?.currency ?? "USD")
 
@@ -55,28 +232,18 @@ export default function AccountsPage() {
 
   // Create form
   const [createOpen, setCreateOpen] = useState(false)
-  const [name, setName] = useState("")
-  const [icon, setIcon] = useState("")
-  const [iconOpen, setIconOpen] = useState(false)
-  const [accountType, setAccountType] = useState<"bank" | "cash" | "credit_card">("bank")
-  const [creditLimit, setCreditLimit] = useState("")
-  const [balance, setBalance] = useState("")
-  const [debt, setDebt] = useState("")
+  const [createForm, setCreateForm] = useState(emptyForm())
   const [submitting, setSubmitting] = useState(false)
+  const [iconOpen, setIconOpen] = useState(false)
 
   // Edit form
   const [editOpen, setEditOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
-  const [editName, setEditName] = useState("")
-  const [editIcon, setEditIcon] = useState("")
-  const [editIconOpen, setEditIconOpen] = useState(false)
-  const [editAccountType, setEditAccountType] = useState<"bank" | "cash" | "credit_card">("bank")
-  const [editCreditLimit, setEditCreditLimit] = useState("")
-  const [editBalance, setEditBalance] = useState("")
-  const [editDebt, setEditDebt] = useState("")
+  const [editForm, setEditForm] = useState(emptyForm())
   const [editSubmitting, setEditSubmitting] = useState(false)
+  const [editIconOpen, setEditIconOpen] = useState(false)
 
-  // Delete confirmation
+  // Delete
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
@@ -95,32 +262,41 @@ export default function AccountsPage() {
     }
   }
 
-  function resetCreateForm() {
-    setName("")
-    setIcon("")
-    setAccountType("bank")
-    setCreditLimit("")
-    setBalance("")
-    setDebt("")
-  }
+  // Only bank accounts can be linked to debit cards
+  const bankAccounts = accounts.filter((a) => a.type === "bank")
 
   async function handleCreate(e: FormEvent) {
     e.preventDefault()
-    if (!name.trim()) return
+    if (!createForm.name.trim()) return
     setSubmitting(true)
     try {
       const { data } = await accountsApi.create({
-        name: name.trim(),
-        icon: icon || undefined,
-        type: accountType,
-        credit_limit: accountType === "credit_card" && creditLimit ? parseFloat(creditLimit) : undefined,
-        balance: balance ? parseFloat(balance) : undefined,
-        debt: debt ? parseFloat(debt) : undefined,
+        name: createForm.name.trim(),
+        icon: createForm.icon || undefined,
+        type: createForm.type,
+        linked_account_id:
+          createForm.type === "debit_card" && createForm.linkedAccountId
+            ? createForm.linkedAccountId
+            : undefined,
+        credit_limit:
+          createForm.type === "credit_card" && createForm.creditLimit
+            ? parseFloat(createForm.creditLimit)
+            : undefined,
+        balance:
+          createForm.type === "debit_card" || createForm.type === "credit_card"
+            ? undefined
+            : createForm.balance
+              ? parseFloat(createForm.balance)
+              : undefined,
+        debt:
+          createForm.type === "credit_card" && createForm.debt
+            ? parseFloat(createForm.debt)
+            : undefined,
       })
       setAccounts((prev) =>
         [...prev, data].sort((a, b) => a.name.localeCompare(b.name))
       )
-      resetCreateForm()
+      setCreateForm(emptyForm())
       setCreateOpen(false)
       toast.success("Account created")
     } catch (err: unknown) {
@@ -135,27 +311,49 @@ export default function AccountsPage() {
 
   function openEdit(account: Account) {
     setEditId(account.id)
-    setEditName(account.name)
-    setEditIcon(account.icon)
-    setEditAccountType(account.type)
-    setEditCreditLimit(account.credit_limit?.toString() ?? "")
-    setEditBalance(account.balance.toString())
-    setEditDebt(account.debt.toString())
+    setEditForm({
+      name: account.name,
+      icon: account.icon,
+      type: account.type,
+      linkedAccountId: account.linked_account_id ?? "",
+      creditLimit: account.credit_limit?.toString() ?? "",
+      balance: account.balance.toString(),
+      debt: account.debt.toString(),
+    })
     setEditOpen(true)
   }
 
   async function handleEdit(e: FormEvent) {
     e.preventDefault()
-    if (!editId || !editName.trim()) return
+    if (!editId || !editForm.name.trim()) return
     setEditSubmitting(true)
     try {
       const { data } = await accountsApi.update(editId, {
-        name: editName.trim(),
-        icon: editIcon || undefined,
-        type: editAccountType,
-        credit_limit: editAccountType === "credit_card" && editCreditLimit ? parseFloat(editCreditLimit) : null,
-        balance: editBalance ? parseFloat(editBalance) : 0,
-        debt: editDebt ? parseFloat(editDebt) : 0,
+        name: editForm.name.trim(),
+        icon: editForm.icon || undefined,
+        type: editForm.type,
+        linked_account_id:
+          editForm.type === "debit_card"
+            ? editForm.linkedAccountId || null
+            : null,
+        credit_limit:
+          editForm.type === "credit_card"
+            ? editForm.creditLimit
+              ? parseFloat(editForm.creditLimit)
+              : null
+            : null,
+        balance:
+          editForm.type === "debit_card" || editForm.type === "credit_card"
+            ? undefined
+            : editForm.balance
+              ? parseFloat(editForm.balance)
+              : 0,
+        debt:
+          editForm.type === "credit_card"
+            ? editForm.debt
+              ? parseFloat(editForm.debt)
+              : 0
+            : undefined,
       })
       setAccounts((prev) =>
         prev
@@ -190,8 +388,13 @@ export default function AccountsPage() {
     }
   }
 
-  const totalBalance = accounts.reduce((sum, a) => sum + Number(a.balance), 0)
-  const totalDebt = accounts.reduce((sum, a) => sum + Number(a.debt), 0)
+  // Balance = bank + cash only (debit cards debit the linked bank; credit cards excluded)
+  const totalBalance = accounts
+    .filter((a) => a.type === "bank" || a.type === "cash")
+    .reduce((sum, a) => sum + Number(a.balance), 0)
+  const totalDebt = accounts
+    .filter((a) => a.type === "credit_card")
+    .reduce((sum, a) => sum + Number(a.debt), 0)
   const netWorth = totalBalance - totalDebt
 
   return (
@@ -204,11 +407,14 @@ export default function AccountsPage() {
             <p className="text-2xl font-bold text-green-600">
               {formatCurrency(totalBalance, currency)}
             </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Bank &amp; cash accounts
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Total Debt</p>
+            <p className="text-sm text-muted-foreground">Credit Card Debt</p>
             <p className="text-2xl font-bold text-red-600">
               {formatCurrency(totalDebt, currency)}
             </p>
@@ -232,7 +438,7 @@ export default function AccountsPage() {
         <Button
           size="sm"
           onClick={() => {
-            resetCreateForm()
+            setCreateForm(emptyForm())
             setCreateOpen(true)
           }}
         >
@@ -250,104 +456,125 @@ export default function AccountsPage() {
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {accounts.map((account) => (
-            <Card key={account.id}>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl">{account.icon}</span>
-                  <div>
-                    <CardTitle className="text-base">{account.name}</CardTitle>
-                    <Badge variant={account.type === "credit_card" ? "destructive" : "secondary"} className="mt-0.5 text-[10px] px-1.5 py-0">
-                      {account.type === "credit_card" ? "Credit Card" : account.type === "cash" ? "Cash" : "Bank"}
-                    </Badge>
+          {accounts.map((account) => {
+            const linkedBank = account.linked_account_id
+              ? accounts.find((a) => a.id === account.linked_account_id)
+              : null
+            return (
+              <Card key={account.id}>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">{account.icon}</span>
+                    <div>
+                      <CardTitle className="text-base">
+                        {account.name}
+                      </CardTitle>
+                      <Badge
+                        variant={
+                          ACCOUNT_TYPE_BADGE[account.type as AccountType]
+                        }
+                        className="mt-0.5 px-1.5 py-0 text-[10px]"
+                      >
+                        {ACCOUNT_TYPE_LABELS[account.type as AccountType] ??
+                          account.type}
+                      </Badge>
+                    </div>
                   </div>
-                </div>
-                <div className="flex gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => openEdit(account)}
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-destructive"
-                    onClick={() => {
-                      setDeleteId(account.id)
-                      setDeleteOpen(true)
-                    }}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-1">
-                  {account.type === "credit_card" ? (
-                    <>
-                      {account.credit_limit != null && (
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => openEdit(account)}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive"
+                      onClick={() => {
+                        setDeleteId(account.id)
+                        setDeleteOpen(true)
+                      }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-1">
+                    {account.type === "credit_card" && (
+                      <>
+                        {account.credit_limit != null && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Limit</span>
+                            <span className="font-medium">
+                              {formatCurrency(
+                                Number(account.credit_limit),
+                                currency
+                              )}
+                            </span>
+                          </div>
+                        )}
                         <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Limit</span>
-                          <span className="font-medium">
-                            {formatCurrency(Number(account.credit_limit), currency)}
-                          </span>
-                        </div>
-                      )}
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Used</span>
-                        <span className="font-medium text-red-600">
-                          {formatCurrency(Number(account.debt), currency)}
-                        </span>
-                      </div>
-                      {account.credit_limit != null && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Available</span>
-                          <span className="font-medium text-green-600">
-                            {formatCurrency(
-                              Number(account.credit_limit) - Number(account.debt),
-                              currency
-                            )}
-                          </span>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Balance</span>
-                        <span className="font-medium text-green-600">
-                          {formatCurrency(Number(account.balance), currency)}
-                        </span>
-                      </div>
-                      {Number(account.debt) > 0 && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Debt</span>
+                          <span className="text-muted-foreground">Used</span>
                           <span className="font-medium text-red-600">
                             {formatCurrency(Number(account.debt), currency)}
                           </span>
                         </div>
-                      )}
-                      <Separator className="my-1" />
+                        {account.credit_limit != null && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              Available
+                            </span>
+                            <span className="font-medium text-green-600">
+                              {formatCurrency(
+                                Number(account.credit_limit) -
+                                  Number(account.debt),
+                                currency
+                              )}
+                            </span>
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {account.type === "debit_card" && (
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Net</span>
-                        <span
-                          className={`font-semibold ${Number(account.balance) - Number(account.debt) >= 0 ? "text-green-600" : "text-red-600"}`}
-                        >
-                          {formatCurrency(
-                            Number(account.balance) - Number(account.debt),
-                            currency
-                          )}
+                        <span className="text-muted-foreground">Linked to</span>
+                        <span className="font-medium">
+                          {linkedBank
+                            ? `${linkedBank.icon} ${linkedBank.name}`
+                            : "—"}
                         </span>
                       </div>
-                    </>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                    )}
+
+                    {(account.type === "bank" || account.type === "cash") && (
+                      <>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Balance</span>
+                          <span className="font-medium text-green-600">
+                            {formatCurrency(Number(account.balance), currency)}
+                          </span>
+                        </div>
+                        <Separator className="my-1" />
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Net</span>
+                          <span
+                            className={`font-semibold ${Number(account.balance) >= 0 ? "text-green-600" : "text-red-600"}`}
+                          >
+                            {formatCurrency(Number(account.balance), currency)}
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
         </div>
       )}
 
@@ -358,118 +585,17 @@ export default function AccountsPage() {
             <DialogHeader>
               <DialogTitle>Add Account</DialogTitle>
               <DialogDescription>
-                Create a new account to track your balance and debts.
+                Add a bank account, cash, debit card, or credit card.
               </DialogDescription>
             </DialogHeader>
             <div className="mt-4 space-y-4">
-              <div className="flex items-end gap-3">
-                <div className="grid gap-1.5">
-                  <Label>Icon</Label>
-                  <Popover open={iconOpen} onOpenChange={setIconOpen}>
-                    <PopoverTrigger
-                      render={
-                        <Button
-                          variant="outline"
-                          className="h-9 w-16 text-lg"
-                        />
-                      }
-                    >
-                      {icon || "💳"}
-                    </PopoverTrigger>
-                    <PopoverContent className="w-64 p-2" align="start">
-                      <div className="grid grid-cols-8 gap-1">
-                        {ICON_OPTIONS.map((e) => (
-                          <button
-                            key={e}
-                            type="button"
-                            className="flex h-8 w-8 items-center justify-center rounded-md text-lg hover:bg-accent"
-                            onClick={() => {
-                              setIcon(e)
-                              setIconOpen(false)
-                            }}
-                          >
-                            {e}
-                          </button>
-                        ))}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                <div className="grid flex-1 gap-1.5">
-                  <Label htmlFor="acc-name">Name</Label>
-                  <Input
-                    id="acc-name"
-                    placeholder="e.g. Savings Account"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-              <div className="grid gap-1.5">
-                <Label>Type</Label>
-                <Select value={accountType} onValueChange={(v) => setAccountType(v as typeof accountType)}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent alignItemWithTrigger={false}>
-                    <SelectItem value="bank">Bank Account</SelectItem>
-                    <SelectItem value="cash">Cash</SelectItem>
-                    <SelectItem value="credit_card">Credit Card</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {accountType === "credit_card" ? (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-1.5">
-                    <Label htmlFor="acc-limit">Credit Limit</Label>
-                    <Input
-                      id="acc-limit"
-                      type="number"
-                      step="0.01"
-                      placeholder="0.00"
-                      value={creditLimit}
-                      onChange={(e) => setCreditLimit(e.target.value)}
-                    />
-                  </div>
-                  <div className="grid gap-1.5">
-                    <Label htmlFor="acc-debt">Current Debt</Label>
-                    <Input
-                      id="acc-debt"
-                      type="number"
-                      step="0.01"
-                      placeholder="0.00"
-                      value={debt}
-                      onChange={(e) => setDebt(e.target.value)}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-1.5">
-                    <Label htmlFor="acc-balance">Balance</Label>
-                    <Input
-                      id="acc-balance"
-                      type="number"
-                      step="0.01"
-                      placeholder="0.00"
-                      value={balance}
-                      onChange={(e) => setBalance(e.target.value)}
-                    />
-                  </div>
-                  <div className="grid gap-1.5">
-                    <Label htmlFor="acc-debt">Debt</Label>
-                    <Input
-                      id="acc-debt"
-                      type="number"
-                      step="0.01"
-                      placeholder="0.00"
-                      value={debt}
-                      onChange={(e) => setDebt(e.target.value)}
-                    />
-                  </div>
-                </div>
-              )}
+              <AccountFormFields
+                form={createForm}
+                onChange={(patch) => setCreateForm((f) => ({ ...f, ...patch }))}
+                iconPickerOpen={iconOpen}
+                setIconPickerOpen={setIconOpen}
+                bankAccounts={bankAccounts}
+              />
             </div>
             <DialogFooter className="mt-6">
               <Button
@@ -496,109 +622,13 @@ export default function AccountsPage() {
               <DialogDescription>Update the account details.</DialogDescription>
             </DialogHeader>
             <div className="mt-4 space-y-4">
-              <div className="flex items-end gap-3">
-                <div className="grid gap-1.5">
-                  <Label>Icon</Label>
-                  <Popover open={editIconOpen} onOpenChange={setEditIconOpen}>
-                    <PopoverTrigger
-                      render={
-                        <Button
-                          variant="outline"
-                          className="h-9 w-16 text-lg"
-                        />
-                      }
-                    >
-                      {editIcon || "💳"}
-                    </PopoverTrigger>
-                    <PopoverContent className="w-64 p-2" align="start">
-                      <div className="grid grid-cols-8 gap-1">
-                        {ICON_OPTIONS.map((e) => (
-                          <button
-                            key={e}
-                            type="button"
-                            className="flex h-8 w-8 items-center justify-center rounded-md text-lg hover:bg-accent"
-                            onClick={() => {
-                              setEditIcon(e)
-                              setEditIconOpen(false)
-                            }}
-                          >
-                            {e}
-                          </button>
-                        ))}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                <div className="grid flex-1 gap-1.5">
-                  <Label htmlFor="edit-name">Name</Label>
-                  <Input
-                    id="edit-name"
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-              <div className="grid gap-1.5">
-                <Label>Type</Label>
-                <Select value={editAccountType} onValueChange={(v) => setEditAccountType(v as typeof editAccountType)}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent alignItemWithTrigger={false}>
-                    <SelectItem value="bank">Bank Account</SelectItem>
-                    <SelectItem value="cash">Cash</SelectItem>
-                    <SelectItem value="credit_card">Credit Card</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {editAccountType === "credit_card" ? (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-1.5">
-                    <Label htmlFor="edit-limit">Credit Limit</Label>
-                    <Input
-                      id="edit-limit"
-                      type="number"
-                      step="0.01"
-                      value={editCreditLimit}
-                      onChange={(e) => setEditCreditLimit(e.target.value)}
-                    />
-                  </div>
-                  <div className="grid gap-1.5">
-                    <Label htmlFor="edit-debt">Current Debt</Label>
-                    <Input
-                      id="edit-debt"
-                      type="number"
-                      step="0.01"
-                      value={editDebt}
-                      onChange={(e) => setEditDebt(e.target.value)}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-1.5">
-                    <Label htmlFor="edit-balance">Balance</Label>
-                    <Input
-                      id="edit-balance"
-                      type="number"
-                      step="0.01"
-                      value={editBalance}
-                      onChange={(e) => setEditBalance(e.target.value)}
-                    />
-                  </div>
-                  <div className="grid gap-1.5">
-                    <Label htmlFor="edit-debt">Debt</Label>
-                    <Input
-                      id="edit-debt"
-                      type="number"
-                      step="0.01"
-                      value={editDebt}
-                      onChange={(e) => setEditDebt(e.target.value)}
-                    />
-                  </div>
-                </div>
-              )}
+              <AccountFormFields
+                form={editForm}
+                onChange={(patch) => setEditForm((f) => ({ ...f, ...patch }))}
+                iconPickerOpen={editIconOpen}
+                setIconPickerOpen={setEditIconOpen}
+                bankAccounts={bankAccounts}
+              />
             </div>
             <DialogFooter className="mt-6">
               <Button

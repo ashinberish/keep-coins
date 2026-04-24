@@ -30,7 +30,7 @@ async def signup(data: UserCreate, db: AsyncSession = Depends(get_db)):
     return user
 
 
-@router.post("/verify-email", response_model=MessageResponse)
+@router.post("/verify-email", response_model=TokenResponse)
 async def verify_email(data: VerifyEmailRequest, db: AsyncSession = Depends(get_db)):
     service = AuthService(db)
     return await service.verify_email(data.email, data.code)
@@ -98,6 +98,15 @@ async def update_username(
             detail="Username already taken",
         )
     return await repo.update_username(current_user, data.username)
+
+
+@router.post("/me/onboarding-complete", response_model=UserResponse)
+async def complete_onboarding(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    repo = UserRepository(db)
+    return await repo.mark_onboarded(current_user)
 
 
 @router.delete("/me", status_code=204)

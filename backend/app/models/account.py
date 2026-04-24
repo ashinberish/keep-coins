@@ -23,6 +23,12 @@ class Account(Base):
     type: Mapped[str] = mapped_column(
         String(20), nullable=False, default="bank", server_default="bank"
     )
+    # For debit_card: points to the linked bank account whose balance is debited
+    linked_account_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("accounts.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     credit_limit: Mapped[Decimal | None] = mapped_column(
         Numeric(precision=12, scale=2), nullable=True
     )

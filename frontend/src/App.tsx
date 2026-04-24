@@ -8,6 +8,7 @@ import ExpensesPage from "@/pages/ExpensesPage"
 import GroupDetailPage from "@/pages/GroupDetailPage"
 import GroupsPage from "@/pages/GroupsPage"
 import LoginPage from "@/pages/LoginPage"
+import OnboardingPage from "@/pages/OnboardingPage"
 import SettingsPage from "@/pages/SettingsPage"
 import SignupPage from "@/pages/SignupPage"
 import SummaryPage from "@/pages/SummaryPage"
@@ -52,6 +53,14 @@ export function App() {
             <GuestRoute>
               <VerifyEmailPage />
             </GuestRoute>
+          }
+        />
+        <Route
+          path="/onboarding"
+          element={
+            <ProtectedRoute skipOnboardingCheck>
+              <OnboardingPage />
+            </ProtectedRoute>
           }
         />
         <Route
