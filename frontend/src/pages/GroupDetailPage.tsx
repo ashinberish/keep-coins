@@ -104,7 +104,6 @@ export default function GroupDetailPage() {
     }
   }
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     loadAll()
   }, [groupId])
@@ -496,7 +495,9 @@ export default function GroupDetailPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="equal">Split Equally</SelectItem>
+                    <SelectItem value="equal" label="Split Equally">
+                      Split Equally
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
