@@ -50,6 +50,12 @@ class UserRepository:
         await self.db.refresh(user)
         return user
 
+    async def mark_onboarded(self, user: User) -> User:
+        user.is_onboarded = True
+        await self.db.commit()
+        await self.db.refresh(user)
+        return user
+
     async def soft_delete(self, user: User) -> None:
         user.is_active = False
         await self.db.commit()

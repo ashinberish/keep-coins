@@ -20,6 +20,7 @@ interface AuthState {
   setDefaultAccount: (id: string | null) => Promise<void>
   updateUsername: (username: string) => Promise<void>
   deleteAccount: () => Promise<void>
+  completeOnboarding: () => Promise<void>
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -72,8 +73,17 @@ export const useAuthStore = create<AuthState>((set) => ({
   verifyEmail: async (email, code) => {
     set({ isLoading: true, error: null })
     try {
-      await authApi.verifyEmail({ email, code })
-      set({ isLoading: false, pendingVerificationEmail: null })
+      const { data } = await authApi.verifyEmail({ email, code })
+      localStorage.setItem("access_token", data.access_token)
+      localStorage.setItem("refresh_token", data.refresh_token)
+
+      const { data: user } = await authApi.getMe()
+      set({
+        user,
+        isAuthenticated: true,
+        isLoading: false,
+        pendingVerificationEmail: null,
+      })
     } catch (err: any) {
       const message =
         err.response?.data?.detail ?? "Verification failed. Please try again."
@@ -133,6 +143,11 @@ export const useAuthStore = create<AuthState>((set) => ({
     localStorage.removeItem("access_token")
     localStorage.removeItem("refresh_token")
     set({ user: null, isAuthenticated: false })
+  },
+
+  completeOnboarding: async () => {
+    const { data } = await authApi.completeOnboarding()
+    set({ user: data })
   },
 
   setPendingVerificationEmail: (email) =>

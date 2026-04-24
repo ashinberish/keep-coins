@@ -31,6 +31,7 @@ class UserResponse(BaseModel):
     is_active: bool
     is_superuser: bool = False
     is_email_verified: bool = False
+    is_onboarded: bool = False
     currency: str = "USD"
     default_account_id: uuid.UUID | None = None
     created_at: datetime

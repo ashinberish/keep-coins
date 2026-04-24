@@ -21,6 +21,7 @@ class AccountService:
             name=data.name,
             icon=data.icon,
             type=data.type,
+            linked_account_id=data.linked_account_id,
             credit_limit=data.credit_limit,
             balance=data.balance,
             debt=data.debt,
@@ -42,6 +43,8 @@ class AccountService:
             account.icon = data.icon
         if data.type is not None:
             account.type = data.type
+        if data.linked_account_id is not None:
+            account.linked_account_id = data.linked_account_id
         if data.credit_limit is not None:
             account.credit_limit = data.credit_limit
         if data.balance is not None:

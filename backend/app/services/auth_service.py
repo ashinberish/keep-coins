@@ -128,7 +128,10 @@ class AuthService:
         user.verification_code_expires_at = None
         await self.repo.db.commit()
 
-        return {"message": "Email verified successfully"}
+        return TokenResponse(
+            access_token=create_access_token(str(user.id)),
+            refresh_token=create_refresh_token(str(user.id)),
+        )
 
     async def resend_verification(self, email: str) -> dict:
         user = await self.repo.get_by_email(email)

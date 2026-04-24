@@ -21,38 +21,36 @@ class ExpenseService:
     ) -> None:
         """Adjust account balances. sign=1 for apply, sign=-1 for reverse.
 
-        For credit_card accounts, expenses increase debt instead of
-        decreasing balance, and income decreases debt.
+        Only bank and cash accounts hold a balance. Debit cards redirect to
+        their linked bank account. Credit cards are skipped entirely.
         """
+
+        async def resolve(acct_id):
+            """Follow a debit_card link to its underlying bank account."""
+            if not acct_id:
+                return None
+            acct = await self.account_repo.get_by_id(acct_id)
+            if acct and acct.type == "debit_card" and acct.linked_account_id:
+                return await self.account_repo.get_by_id(acct.linked_account_id)
+            return acct
+
         if txn_type == "income" and account_id:
-            acct = await self.account_repo.get_by_id(account_id)
-            if acct:
-                if acct.type == "credit_card":
-                    acct.debt -= amount * sign
-                else:
-                    acct.balance += amount * sign
+            acct = await resolve(account_id)
+            if acct and acct.type in ("bank", "cash"):
+                acct.balance += amount * sign
         elif txn_type == "expense" and account_id:
-            acct = await self.account_repo.get_by_id(account_id)
-            if acct:
-                if acct.type == "credit_card":
-                    acct.debt += amount * sign
-                else:
-                    acct.balance -= amount * sign
+            acct = await resolve(account_id)
+            if acct and acct.type in ("bank", "cash"):
+                acct.balance -= amount * sign
         elif txn_type == "transfer":
             if account_id:
-                src = await self.account_repo.get_by_id(account_id)
-                if src:
-                    if src.type == "credit_card":
-                        src.debt += amount * sign
-                    else:
-                        src.balance -= amount * sign
+                src = await resolve(account_id)
+                if src and src.type in ("bank", "cash"):
+                    src.balance -= amount * sign
             if transfer_to_id:
-                dst = await self.account_repo.get_by_id(transfer_to_id)
-                if dst:
-                    if dst.type == "credit_card":
-                        dst.debt -= amount * sign
-                    else:
-                        dst.balance += amount * sign
+                dst = await resolve(transfer_to_id)
+                if dst and dst.type in ("bank", "cash"):
+                    dst.balance += amount * sign
 
     async def list_expenses(
         self,

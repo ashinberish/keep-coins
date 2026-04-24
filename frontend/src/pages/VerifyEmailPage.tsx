@@ -55,8 +55,8 @@ export default function VerifyEmailPage() {
 
     try {
       await verifyEmail(pendingVerificationEmail!, code)
-      toast.success("Email verified! You can now sign in.")
-      navigate("/login")
+      toast.success("Email verified! Let's set up your account.")
+      navigate("/onboarding")
     } catch {
       // error is set in store
     }
