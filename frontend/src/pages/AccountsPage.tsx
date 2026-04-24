@@ -152,7 +152,7 @@ function AccountFormFields({
           <Label>Linked Bank Account</Label>
           <Select
             value={form.linkedAccountId}
-            onValueChange={(v) => onChange({ linkedAccountId: v })}
+            onValueChange={(v) => onChange({ linkedAccountId: v ?? undefined })}
           >
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Select bank account…" />
