@@ -316,6 +316,10 @@ export default function OnboardingPage() {
               <div className="flex items-center gap-2">
                 <Select
                   value={newCatType}
+                  items={[
+                    { value: "expense", label: "Expense" },
+                    { value: "income", label: "Income" },
+                  ]}
                   onValueChange={(v) =>
                     setNewCatType(v as "expense" | "income")
                   }
@@ -415,6 +419,10 @@ export default function OnboardingPage() {
               <div className="flex items-center gap-2">
                 <Select
                   value={newAccType}
+                  items={ACCOUNT_TYPES.map((t) => ({
+                    value: t.value,
+                    label: `${t.icon} ${t.label}`,
+                  }))}
                   onValueChange={(v) => {
                     setNewAccType(v as AccountType)
                     const match = ACCOUNT_TYPES.find((t) => t.value === v)

@@ -311,6 +311,13 @@ export default function SettingsPage() {
             <Label>Default Account</Label>
             <Select
               value={user?.default_account_id ?? "none"}
+              items={[
+                { value: "none", label: "None" },
+                ...accounts.map((a) => ({
+                  value: a.id,
+                  label: `${a.icon} ${a.name}`,
+                })),
+              ]}
               onValueChange={handleDefaultAccountChange}
             >
               <SelectTrigger className="w-full sm:w-64">
@@ -410,6 +417,10 @@ export default function SettingsPage() {
               <Label>Type</Label>
               <Select
                 value={catType}
+                items={[
+                  { value: "expense", label: "Expense" },
+                  { value: "income", label: "Income" },
+                ]}
                 onValueChange={(v) => setCatType(v as "expense" | "income")}
               >
                 <SelectTrigger className="w-28">

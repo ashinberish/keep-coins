@@ -55,6 +55,10 @@ const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
   credit_card: "Credit Card",
 }
 
+const ACCOUNT_TYPE_ITEMS = Object.entries(ACCOUNT_TYPE_LABELS).map(
+  ([value, label]) => ({ value, label })
+)
+
 const ACCOUNT_TYPE_BADGE: Record<
   AccountType,
   "secondary" | "destructive" | "outline"
@@ -133,6 +137,7 @@ function AccountFormFields({
         <Label>Type</Label>
         <Select
           value={form.type}
+          items={ACCOUNT_TYPE_ITEMS}
           onValueChange={(v) => onChange({ type: v as AccountType })}
         >
           <SelectTrigger className="w-full">
@@ -160,6 +165,10 @@ function AccountFormFields({
           <Label>Linked Bank Account</Label>
           <Select
             value={form.linkedAccountId}
+            items={bankAccounts.map((a) => ({
+              value: a.id,
+              label: `${a.icon} ${a.name}`,
+            }))}
             onValueChange={(v) => onChange({ linkedAccountId: v ?? undefined })}
           >
             <SelectTrigger className="w-full">
