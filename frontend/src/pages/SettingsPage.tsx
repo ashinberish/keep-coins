@@ -326,9 +326,15 @@ export default function SettingsPage() {
                 </SelectValue>
               </SelectTrigger>
               <SelectContent alignItemWithTrigger={false}>
-                <SelectItem value="none">None</SelectItem>
+                <SelectItem value="none" label="None">
+                  None
+                </SelectItem>
                 {accounts.map((acct) => (
-                  <SelectItem key={acct.id} value={acct.id}>
+                  <SelectItem
+                    key={acct.id}
+                    value={acct.id}
+                    label={`${acct.icon} ${acct.name}`}
+                  >
                     <span className="mr-2">{acct.icon}</span>
                     {acct.name}
                   </SelectItem>
@@ -410,8 +416,12 @@ export default function SettingsPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent alignItemWithTrigger={false}>
-                  <SelectItem value="expense">Expense</SelectItem>
-                  <SelectItem value="income">Income</SelectItem>
+                  <SelectItem value="expense" label="Expense">
+                    Expense
+                  </SelectItem>
+                  <SelectItem value="income" label="Income">
+                    Income
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
