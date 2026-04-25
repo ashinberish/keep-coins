@@ -23,6 +23,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
   TableBody,
@@ -303,71 +304,88 @@ export default function ExpensesPage() {
   return (
     <div className="space-y-6">
       {/* Overview cards */}
-      {stats && (
-        <div className="grid grid-cols-3 gap-3">
-          <Card className="py-3">
-            <CardContent className="px-4">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-medium text-muted-foreground">
-                  Expense
+      <div className="grid grid-cols-3 gap-3">
+        {!stats ? (
+          <>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Card key={i} className="py-3">
+                <CardContent className="px-4">
+                  <div className="flex items-center justify-between">
+                    <Skeleton className="h-3 w-14" />
+                    <Skeleton className="h-5 w-5 rounded" />
+                  </div>
+                  <Skeleton className="mt-2 h-7 w-28" />
+                  <Skeleton className="mt-2 h-3 w-20" />
+                </CardContent>
+              </Card>
+            ))}
+          </>
+        ) : (
+          <>
+            <Card className="py-3">
+              <CardContent className="px-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Expense
+                  </p>
+                  <ArrowDownRight className="h-5 w-5 text-red-500" />
+                </div>
+                <p className="mt-1 font-mono text-xl font-bold tabular-nums">
+                  {currencySymbol(currency)}
+                  {formatAmount(stats.month_total, currency)}
                 </p>
-                <ArrowDownRight className="h-5 w-5 text-red-500" />
-              </div>
-              <p className="mt-1 font-mono text-xl font-bold tabular-nums">
-                {currencySymbol(currency)}
-                {formatAmount(stats.month_total, currency)}
-              </p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">
-                Today: {currencySymbol(currency)}
-                {formatAmount(stats.today_total, currency)}
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="py-3">
-            <CardContent className="px-4">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-medium text-muted-foreground">
-                  Income
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  Today: {currencySymbol(currency)}
+                  {formatAmount(stats.today_total, currency)}
                 </p>
-                <ArrowUpRight className="h-5 w-5 text-emerald-500" />
-              </div>
-              <p className="mt-1 font-mono text-xl font-bold text-emerald-600 tabular-nums dark:text-emerald-400">
-                {currencySymbol(currency)}
-                {formatAmount(stats.month_income, currency)}
-              </p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">
-                Today: {currencySymbol(currency)}
-                {formatAmount(stats.today_income, currency)}
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="py-3">
-            <CardContent className="px-4">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-medium text-muted-foreground">
-                  Balance
+              </CardContent>
+            </Card>
+            <Card className="py-3">
+              <CardContent className="px-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Income
+                  </p>
+                  <ArrowUpRight className="h-5 w-5 text-emerald-500" />
+                </div>
+                <p className="mt-1 font-mono text-xl font-bold text-emerald-600 tabular-nums dark:text-emerald-400">
+                  {currencySymbol(currency)}
+                  {formatAmount(stats.month_income, currency)}
                 </p>
-                <Scale className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <p
-                className={cn(
-                  "mt-1 font-mono text-xl font-bold tabular-nums",
-                  monthBalance >= 0
-                    ? "text-emerald-600 dark:text-emerald-400"
-                    : "text-red-600 dark:text-red-400"
-                )}
-              >
-                {monthBalance < 0 ? "-" : ""}
-                {currencySymbol(currency)}
-                {formatAmount(Math.abs(monthBalance), currency)}
-              </p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">
-                This month
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  Today: {currencySymbol(currency)}
+                  {formatAmount(stats.today_income, currency)}
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="py-3">
+              <CardContent className="px-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Balance
+                  </p>
+                  <Scale className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <p
+                  className={cn(
+                    "mt-1 font-mono text-xl font-bold tabular-nums",
+                    monthBalance >= 0
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-red-600 dark:text-red-400"
+                  )}
+                >
+                  {monthBalance < 0 ? "-" : ""}
+                  {currencySymbol(currency)}
+                  {formatAmount(Math.abs(monthBalance), currency)}
+                </p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  This month
+                </p>
+              </CardContent>
+            </Card>
+          </>
+        )}
+      </div>
 
       {/* Add transaction form */}
       <Card>

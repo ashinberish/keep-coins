@@ -27,6 +27,7 @@ import { useAuthStore } from "@/store/auth"
 import {
   BarChart3,
   ChevronsUpDown,
+  Coins,
   Landmark,
   LogOut,
   Receipt,
@@ -104,7 +105,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     <SidebarProvider>
       <Sidebar>
         <SidebarHeader className="p-4">
-          <span className="text-lg font-bold tracking-tight">KeepCoins</span>
+          <span className="flex items-center gap-2 text-lg font-bold tracking-tight">
+            <Coins className="size-5 text-primary" />
+            KeepCoins
+          </span>
         </SidebarHeader>
         <SidebarContent>
           <SidebarGroup>
