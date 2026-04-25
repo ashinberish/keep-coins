@@ -7,6 +7,7 @@ from app.api.expenses import router as expenses_router
 from app.api.groups import router as groups_router
 from app.api.summary import router as summary_router
 from app.core.config import settings
+from app.core.rate_limit import RateLimitMiddleware
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -20,6 +21,7 @@ app = FastAPI(
     openapi_url="/openapi.json" if is_dev else None,
 )
 
+app.add_middleware(RateLimitMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
