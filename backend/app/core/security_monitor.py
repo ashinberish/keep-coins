@@ -137,7 +137,7 @@ def track_response(ip: str, path: str, status_code: int) -> None:
     """Classify response and record suspicious events."""
     if status_code == 429:
         _record_event(ip, "rate_limited", path)
-    elif status_code == 401 and "/auth/login" in path:
+    elif status_code == 401 and path.startswith("/api/auth"):
         _record_event(ip, "auth_failure", path)
     elif status_code == 403:
         _record_event(ip, "forbidden", path)
