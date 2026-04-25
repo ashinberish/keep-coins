@@ -1,0 +1,76 @@
+<div
+  style="
+    font-family: &quot;Segoe UI&quot;, Arial, sans-serif;
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 24px;
+  "
+>
+  <h2 style="color: #dc2626; margin-bottom: 4px">
+    ⚠️ Security Alert – {{label}}
+  </h2>
+  <p style="color: #6b7280; font-size: 14px; margin-top: 0">{{timestamp}}</p>
+  <table style="width: 100%; border-collapse: collapse; margin: 16px 0">
+    <tr>
+      <td
+        style="
+          padding: 8px 12px;
+          background: #fef2f2;
+          font-weight: 600;
+          border: 1px solid #fecaca;
+        "
+      >
+        IP Address
+      </td>
+      <td style="padding: 8px 12px; border: 1px solid #fecaca">
+        <code>{{ip}}</code>
+      </td>
+    </tr>
+    <tr>
+      <td
+        style="
+          padding: 8px 12px;
+          background: #fef2f2;
+          font-weight: 600;
+          border: 1px solid #fecaca;
+        "
+      >
+        Event
+      </td>
+      <td style="padding: 8px 12px; border: 1px solid #fecaca">{{label}}</td>
+    </tr>
+    <tr>
+      <td
+        style="
+          padding: 8px 12px;
+          background: #fef2f2;
+          font-weight: 600;
+          border: 1px solid #fecaca;
+        "
+      >
+        Count
+      </td>
+      <td style="padding: 8px 12px; border: 1px solid #fecaca">
+        {{count}} events in {{window_minutes}} min
+      </td>
+    </tr>
+    <tr>
+      <td
+        style="
+          padding: 8px 12px;
+          background: #fef2f2;
+          font-weight: 600;
+          border: 1px solid #fecaca;
+        "
+      >
+        Last Path
+      </td>
+      <td style="padding: 8px 12px; border: 1px solid #fecaca">
+        <code>{{path}}</code>
+      </td>
+    </tr>
+  </table>
+  <p style="color: #6b7280; font-size: 13px">
+    This alert won't repeat for the same IP + event type for 30 minutes.
+  </p>
+</div>
