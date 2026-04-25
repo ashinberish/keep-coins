@@ -1,5 +1,5 @@
-import asyncio
 import logging
+import threading
 import time
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -107,7 +107,7 @@ def _send_alert_async(
         )
         return
 
-    async def _send() -> None:
+    def _send() -> None:
         try:
             import resend
 
@@ -120,14 +120,11 @@ def _send_alert_async(
                 "html": _build_alert_html(ip, event_type, count, window, path),
             }
             resend.Emails.send(params)
+            logger.info("Security alert email sent to %s", settings.ALERT_EMAIL)
         except Exception:
             logger.exception("Failed to send security alert email")
 
-    try:
-        loop = asyncio.get_running_loop()
-        loop.create_task(_send())
-    except RuntimeError:
-        logger.warning("No event loop – skipping async alert email")
+    threading.Thread(target=_send, daemon=True).start()
 
 
 # ---------------------------------------------------------------------------
