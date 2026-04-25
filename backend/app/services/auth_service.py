@@ -95,7 +95,7 @@ class AuthService:
             refresh_token=create_refresh_token(str(user.id)),
         )
 
-    async def verify_email(self, email: str, code: str) -> dict:
+    async def verify_email(self, email: str, code: str) -> TokenResponse:
         user = await self.repo.get_by_email(email)
         if not user:
             raise HTTPException(
