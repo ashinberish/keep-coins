@@ -1,3 +1,4 @@
+import { Logo } from "@/components/Logo"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -175,9 +176,8 @@ export default function OnboardingPage() {
   return (
     <div className="flex min-h-svh flex-col items-center justify-center p-4">
       <div className="mb-6 text-center">
-        <h1 className="text-3xl font-bold tracking-tight">
-          Welcome to KeepCoins
-        </h1>
+        <Logo className="justify-center" />
+        <h2 className="mt-2 text-xl font-semibold">Welcome!</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Let's set up your account in a few quick steps
         </p>
