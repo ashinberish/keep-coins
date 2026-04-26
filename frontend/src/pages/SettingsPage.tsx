@@ -1,3 +1,4 @@
+import { useTheme } from "@/components/theme-provider"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -32,11 +33,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CURRENCIES, currencyIcon } from "@/lib/currency"
 import { accountsApi, type Account } from "@/services/accounts"
 import { categoriesApi, type Category } from "@/services/categories"
 import { useAuthStore } from "@/store/auth"
-import { Trash2 } from "lucide-react"
+import { Moon, Sun, Trash2 } from "lucide-react"
 import { useEffect, useState, type FormEvent } from "react"
 import { toast } from "sonner"
 
@@ -84,10 +86,12 @@ const EMOJI_OPTIONS = [
 ]
 
 export default function SettingsPage() {
+  const { theme, setTheme: setThemeLocal } = useTheme()
   const {
     user,
     setCurrency,
     setDefaultAccount,
+    setTheme: setThemeDB,
     updateUsername,
     deleteAccount,
   } = useAuthStore()
@@ -350,6 +354,40 @@ export default function SettingsPage() {
             </Select>
             <p className="text-xs text-muted-foreground">
               Auto-selected when adding new transactions.
+            </p>
+          </div>
+          <Separator />
+          <div className="grid gap-1.5">
+            <Label>Theme</Label>
+            <Tabs
+              value={theme}
+              onValueChange={async (v) => {
+                const t = v as "light" | "dark" | "system"
+                setThemeLocal(t)
+                try {
+                  await setThemeDB(t)
+                } catch {
+                  toast.error("Failed to save theme")
+                }
+              }}
+              className="w-full sm:w-64"
+            >
+              <TabsList className="w-full">
+                <TabsTrigger value="light" className="flex-1 gap-1.5">
+                  <Sun className="h-4 w-4" />
+                  Light
+                </TabsTrigger>
+                <TabsTrigger value="dark" className="flex-1 gap-1.5">
+                  <Moon className="h-4 w-4" />
+                  Dark
+                </TabsTrigger>
+                <TabsTrigger value="system" className="flex-1 gap-1.5">
+                  System
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <p className="text-xs text-muted-foreground">
+              Choose your preferred appearance.
             </p>
           </div>
         </CardContent>

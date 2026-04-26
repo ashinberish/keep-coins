@@ -24,6 +24,9 @@ class User(Base):
     currency: Mapped[str] = mapped_column(
         String(3), default="USD", server_default="USD"
     )
+    theme: Mapped[str] = mapped_column(
+        String(10), default="system", server_default="system"
+    )
     default_account_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("accounts.id", ondelete="SET NULL"),

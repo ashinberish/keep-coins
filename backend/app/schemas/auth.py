@@ -33,6 +33,7 @@ class UserResponse(BaseModel):
     is_email_verified: bool = False
     is_onboarded: bool = False
     currency: str = "USD"
+    theme: str = "system"
     default_account_id: uuid.UUID | None = None
     created_at: datetime
 
@@ -49,6 +50,10 @@ class UpdateDefaultAccountRequest(BaseModel):
 
 class UpdateUsernameRequest(BaseModel):
     username: str
+
+
+class UpdateThemeRequest(BaseModel):
+    theme: str
 
 
 class TokenResponse(BaseModel):

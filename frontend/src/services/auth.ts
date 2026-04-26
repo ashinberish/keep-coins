@@ -26,6 +26,7 @@ export interface UserResponse {
   is_email_verified: boolean
   is_onboarded: boolean
   currency: string
+  theme: string
   default_account_id: string | null
   created_at: string
 }
@@ -62,6 +63,9 @@ export const authApi = {
 
   updateUsername: (username: string) =>
     api.patch<UserResponse>("/auth/me/username", { username }),
+
+  updateTheme: (theme: string) =>
+    api.patch<UserResponse>("/auth/me/theme", { theme }),
 
   deleteAccount: () => api.delete("/auth/me"),
 
