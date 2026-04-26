@@ -12,6 +12,7 @@ from app.schemas.auth import (
     TokenResponse,
     UpdateCurrencyRequest,
     UpdateDefaultAccountRequest,
+    UpdateThemeRequest,
     UpdateUsernameRequest,
     UserCreate,
     UserLogin,
@@ -98,6 +99,24 @@ async def update_username(
             detail="Username already taken",
         )
     return await repo.update_username(current_user, data.username)
+
+
+@router.patch("/me/theme", response_model=UserResponse)
+async def update_theme(
+    data: UpdateThemeRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from fastapi import HTTPException
+    from fastapi import status as http_status
+
+    if data.theme not in ("light", "dark", "system"):
+        raise HTTPException(
+            status_code=http_status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Theme must be light, dark, or system",
+        )
+    repo = UserRepository(db)
+    return await repo.update_theme(current_user, data.theme)
 
 
 @router.post("/me/onboarding-complete", response_model=UserResponse)

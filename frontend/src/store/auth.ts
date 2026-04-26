@@ -18,6 +18,7 @@ interface AuthState {
   setPendingVerificationEmail: (email: string | null) => void
   setCurrency: (currency: string) => Promise<void>
   setDefaultAccount: (id: string | null) => Promise<void>
+  setTheme: (theme: string) => Promise<void>
   updateUsername: (username: string) => Promise<void>
   deleteAccount: () => Promise<void>
   completeOnboarding: () => Promise<void>
@@ -131,6 +132,11 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   setDefaultAccount: async (id) => {
     const { data } = await authApi.updateDefaultAccount(id)
+    set({ user: data })
+  },
+
+  setTheme: async (theme) => {
+    const { data } = await authApi.updateTheme(theme)
     set({ user: data })
   },
 
