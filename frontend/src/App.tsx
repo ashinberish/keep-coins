@@ -1,6 +1,7 @@
 import { AppLayout } from "@/components/AppLayout"
 import { GuestRoute } from "@/components/GuestRoute"
 import { ProtectedRoute } from "@/components/ProtectedRoute"
+import { useTheme } from "@/components/theme-provider"
 import AccountsPage from "@/pages/AccountsPage"
 import AdminSettingsPage from "@/pages/AdminSettingsPage"
 import EmiPage from "@/pages/EmiPage"
@@ -19,13 +20,21 @@ import { Route, Routes } from "react-router"
 import { Toaster } from "sonner"
 
 export function App() {
-  const { isAuthenticated, fetchUser } = useAuthStore()
+  const { isAuthenticated, fetchUser, user } = useAuthStore()
+  const { setTheme } = useTheme()
 
   useEffect(() => {
     if (isAuthenticated) {
       fetchUser()
     }
   }, [])
+
+  // Sync theme from DB when user loads
+  useEffect(() => {
+    if (user?.theme) {
+      setTheme(user.theme as "light" | "dark" | "system")
+    }
+  }, [user?.theme])
 
   return (
     <>

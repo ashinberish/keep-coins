@@ -1,3 +1,4 @@
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -32,6 +33,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   currencySymbol,
   formatAmount,
@@ -46,11 +48,14 @@ import { useAuthStore } from "@/store/auth"
 import { format } from "date-fns"
 import {
   ArrowDownRight,
+  ArrowLeftRight,
   ArrowUpRight,
   CalendarIcon,
   ChevronLeft,
   ChevronRight,
+  Minus,
   Pencil,
+  Plus,
   Receipt,
   Scale,
   Trash2,
@@ -303,97 +308,71 @@ export default function ExpensesPage() {
 
   return (
     <div className="space-y-6">
-      {/* Overview cards */}
-      <div className="grid grid-cols-3 gap-3">
-        {!stats ? (
-          <>
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Card key={i} className="py-3">
-                <CardContent className="px-4">
-                  <div className="flex items-center justify-between">
-                    <Skeleton className="h-3 w-14" />
-                    <Skeleton className="h-5 w-5 rounded" />
-                  </div>
-                  <Skeleton className="mt-2 h-7 w-28" />
-                  <Skeleton className="mt-2 h-3 w-20" />
-                </CardContent>
-              </Card>
-            ))}
-          </>
-        ) : (
-          <>
-            <Card className="py-3">
-              <CardContent className="px-4">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-medium text-muted-foreground">
-                    Expense
-                  </p>
-                  <ArrowDownRight className="h-5 w-5 text-red-500" />
-                </div>
-                <p className="mt-1 font-mono text-xl font-bold tabular-nums">
-                  {currencySymbol(currency)}
-                  {formatAmount(stats.month_total, currency)}
-                </p>
-                <p className="mt-0.5 text-[11px] text-muted-foreground">
-                  Today: {currencySymbol(currency)}
-                  {formatAmount(stats.today_total, currency)}
-                </p>
-              </CardContent>
-            </Card>
-            <Card className="py-3">
-              <CardContent className="px-4">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-medium text-muted-foreground">
-                    Income
-                  </p>
-                  <ArrowUpRight className="h-5 w-5 text-emerald-500" />
-                </div>
-                <p className="mt-1 font-mono text-xl font-bold text-emerald-600 tabular-nums dark:text-emerald-400">
-                  {currencySymbol(currency)}
-                  {formatAmount(stats.month_income, currency)}
-                </p>
-                <p className="mt-0.5 text-[11px] text-muted-foreground">
-                  Today: {currencySymbol(currency)}
-                  {formatAmount(stats.today_income, currency)}
-                </p>
-              </CardContent>
-            </Card>
-            <Card className="py-3">
-              <CardContent className="px-4">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-medium text-muted-foreground">
-                    Balance
-                  </p>
-                  <Scale className="h-5 w-5 text-muted-foreground" />
-                </div>
-                <p
-                  className={cn(
-                    "mt-1 font-mono text-xl font-bold tabular-nums",
-                    monthBalance >= 0
-                      ? "text-emerald-600 dark:text-emerald-400"
-                      : "text-red-600 dark:text-red-400"
-                  )}
-                >
-                  {monthBalance < 0 ? "-" : ""}
-                  {currencySymbol(currency)}
-                  {formatAmount(Math.abs(monthBalance), currency)}
-                </p>
-                <p className="mt-0.5 text-[11px] text-muted-foreground">
-                  This month
-                </p>
-              </CardContent>
-            </Card>
-          </>
-        )}
-      </div>
-
       {/* Add transaction form */}
       <Card>
         <CardContent className="pt-6 pb-5">
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Type toggle */}
+            <Tabs
+              value={txnType}
+              onValueChange={(v) => {
+                const t = v as "expense" | "income" | "transfer"
+                setTxnType(t)
+                if (t === "expense") {
+                  setCategoryId(expenseCategories[0]?.id ?? null)
+                } else if (t === "income") {
+                  setCategoryId(incomeCategories[0]?.id ?? null)
+                } else {
+                  setCategoryId(null)
+                }
+              }}
+              className="mx-auto w-full max-w-xs"
+            >
+              <TabsList className="w-full">
+                <TabsTrigger value="expense" className="flex-1 gap-1.5">
+                  <Minus
+                    className={cn(
+                      "h-3.5 w-3.5",
+                      txnType === "expense" && "text-red-500"
+                    )}
+                  />
+                  Expense
+                </TabsTrigger>
+                <TabsTrigger value="income" className="flex-1 gap-1.5">
+                  <Plus
+                    className={cn(
+                      "h-3.5 w-3.5",
+                      txnType === "income" && "text-emerald-500"
+                    )}
+                  />
+                  Income
+                </TabsTrigger>
+                <TabsTrigger value="transfer" className="flex-1 gap-1.5">
+                  <ArrowLeftRight
+                    className={cn(
+                      "h-3.5 w-3.5",
+                      txnType === "transfer" && "text-blue-500"
+                    )}
+                  />
+                  Transfer
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+
             {/* Amount hero */}
             <div className="flex items-baseline justify-center gap-1 py-2">
-              <span className="font-mono text-3xl font-light text-muted-foreground">
+              <span
+                className={cn(
+                  "font-mono text-3xl font-light transition-colors",
+                  amount
+                    ? txnType === "income"
+                      ? "text-emerald-500"
+                      : txnType === "transfer"
+                        ? "text-blue-500"
+                        : "text-red-500"
+                    : "text-muted-foreground"
+                )}
+              >
                 {currencySymbol(currency)}
               </span>
               <input
@@ -406,40 +385,19 @@ export default function ExpensesPage() {
                   const formatted = formatInputAmount(raw, currency)
                   if (formatted !== null) setAmount(formatted)
                 }}
-                className="w-44 border-none bg-transparent text-center font-mono text-4xl font-semibold tracking-tight outline-none placeholder:text-muted-foreground/40"
+                className={cn(
+                  "w-44 border-none bg-transparent font-mono text-4xl font-semibold tracking-tight transition-colors outline-none placeholder:text-muted-foreground/40",
+                  amount
+                    ? txnType === "income"
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : txnType === "transfer"
+                        ? "text-blue-600 dark:text-blue-400"
+                        : "text-red-600 dark:text-red-400"
+                    : ""
+                )}
                 required
                 autoFocus
               />
-            </div>
-
-            {/* Type toggle — centered, full width tabs */}
-            <div className="mx-auto w-full max-w-xs">
-              <div className="grid w-full grid-cols-3 rounded-lg bg-muted p-1">
-                {(["expense", "income", "transfer"] as const).map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    className={cn(
-                      "rounded-md py-2 text-sm font-medium capitalize transition-colors",
-                      txnType === t
-                        ? "bg-background text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                    onClick={() => {
-                      setTxnType(t)
-                      if (t === "expense") {
-                        setCategoryId(expenseCategories[0]?.id ?? null)
-                      } else if (t === "income") {
-                        setCategoryId(incomeCategories[0]?.id ?? null)
-                      } else {
-                        setCategoryId(null)
-                      }
-                    }}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
             </div>
 
             {/* Row 2: Context fields — adapts to type */}
@@ -613,7 +571,105 @@ export default function ExpensesPage() {
           </form>
         </CardContent>
       </Card>
-
+      {/* Overview cards */}
+      <div className="grid grid-cols-3 gap-3">
+        {!stats ? (
+          <>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Card key={i} className="py-3">
+                <CardContent className="px-4">
+                  <div className="flex items-center justify-between">
+                    <Skeleton className="h-3 w-14" />
+                    <Skeleton className="h-5 w-5 rounded" />
+                  </div>
+                  <Skeleton className="mt-2 h-7 w-28" />
+                  <Skeleton className="mt-2 h-3 w-20" />
+                </CardContent>
+              </Card>
+            ))}
+          </>
+        ) : (
+          <>
+            <Card className="py-3">
+              <CardContent className="px-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Expense
+                  </p>
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-red-500/10">
+                    <ArrowDownRight className="h-4 w-4 text-red-500" />
+                  </div>
+                </div>
+                <p className="mt-1 font-mono text-xl font-bold tabular-nums">
+                  {currencySymbol(currency)}
+                  {formatAmount(stats.month_total, currency)}
+                </p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  Today: {currencySymbol(currency)}
+                  {formatAmount(stats.today_total, currency)}
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="py-3">
+              <CardContent className="px-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Income
+                  </p>
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500/10">
+                    <ArrowUpRight className="h-4 w-4 text-emerald-500" />
+                  </div>
+                </div>
+                <p className="mt-1 font-mono text-xl font-bold text-emerald-600 tabular-nums dark:text-emerald-400">
+                  {currencySymbol(currency)}
+                  {formatAmount(stats.month_income, currency)}
+                </p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  Today: {currencySymbol(currency)}
+                  {formatAmount(stats.today_income, currency)}
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="py-3">
+              <CardContent className="px-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Balance
+                  </p>
+                  <div
+                    className={cn(
+                      "flex h-7 w-7 items-center justify-center rounded-full",
+                      monthBalance >= 0 ? "bg-emerald-500/10" : "bg-red-500/10"
+                    )}
+                  >
+                    <Scale
+                      className={cn(
+                        "h-4 w-4",
+                        monthBalance >= 0 ? "text-emerald-500" : "text-red-500"
+                      )}
+                    />
+                  </div>
+                </div>
+                <p
+                  className={cn(
+                    "mt-1 font-mono text-xl font-bold tabular-nums",
+                    monthBalance >= 0
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-red-600 dark:text-red-400"
+                  )}
+                >
+                  {monthBalance < 0 ? "-" : ""}
+                  {currencySymbol(currency)}
+                  {formatAmount(Math.abs(monthBalance), currency)}
+                </p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  This month
+                </p>
+              </CardContent>
+            </Card>
+          </>
+        )}
+      </div>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle>
@@ -635,23 +691,29 @@ export default function ExpensesPage() {
             )}
           </CardTitle>
           <div className="flex items-center gap-2">
-            <div className="flex gap-1">
-              {(["all", "today", "week", "month", "year"] as const).map((p) => (
-                <Button
-                  key={p}
-                  variant={period === p ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => {
-                    setPeriod(p)
-                    setRangeFrom(undefined)
-                    setRangeTo(undefined)
-                  }}
-                  className="text-xs capitalize"
-                >
-                  {p}
-                </Button>
-              ))}
-            </div>
+            <Tabs
+              value={period === "custom" ? undefined : period}
+              onValueChange={(v) => {
+                const p = v as "all" | "today" | "week" | "month" | "year"
+                setPeriod(p)
+                setRangeFrom(undefined)
+                setRangeTo(undefined)
+              }}
+            >
+              <TabsList>
+                {(["all", "today", "week", "month", "year"] as const).map(
+                  (p) => (
+                    <TabsTrigger
+                      key={p}
+                      value={p}
+                      className="text-xs capitalize"
+                    >
+                      {p}
+                    </TabsTrigger>
+                  )
+                )}
+              </TabsList>
+            </Tabs>
             <Popover>
               <PopoverTrigger
                 render={
@@ -717,12 +779,27 @@ export default function ExpensesPage() {
                 </TableHeader>
                 <TableBody>
                   {expenses.map((expense) => (
-                    <TableRow key={expense.id}>
-                      <TableCell>{expense.date}</TableCell>
+                    <TableRow key={expense.id} className="group">
+                      <TableCell className="text-muted-foreground">
+                        {(() => {
+                          const d = new Date(expense.date + "T00:00:00")
+                          return (
+                            <div className="flex flex-col">
+                              <span className="text-sm font-medium text-foreground">
+                                {format(d, "MMM d")}
+                              </span>
+                              <span className="text-[11px]">
+                                {format(d, "EEE")}
+                              </span>
+                            </div>
+                          )
+                        })()}
+                      </TableCell>
                       <TableCell>
-                        <span
+                        <Badge
+                          variant="secondary"
                           className={cn(
-                            "inline-flex rounded-full px-2 py-0.5 text-xs font-medium",
+                            "gap-1 border-transparent",
                             expense.type === "income"
                               ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                               : expense.type === "transfer"
@@ -730,12 +807,19 @@ export default function ExpensesPage() {
                                 : "bg-red-500/10 text-red-600 dark:text-red-400"
                           )}
                         >
+                          {expense.type === "income" ? (
+                            <ArrowUpRight className="h-3 w-3" />
+                          ) : expense.type === "transfer" ? (
+                            <ArrowLeftRight className="h-3 w-3" />
+                          ) : (
+                            <ArrowDownRight className="h-3 w-3" />
+                          )}
                           {expense.type === "income"
                             ? "Income"
                             : expense.type === "transfer"
                               ? "Transfer"
                               : "Expense"}
-                        </span>
+                        </Badge>
                       </TableCell>
                       <TableCell>
                         {expense.category_id
@@ -749,11 +833,17 @@ export default function ExpensesPage() {
                             })()
                           : "—"}
                       </TableCell>
-                      <TableCell>{expense.description ?? "—"}</TableCell>
+                      <TableCell className="max-w-50 truncate">
+                        {expense.description ?? (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
                       <TableCell>
                         {expense.type === "transfer"
                           ? `${expense.account_name ?? "?"} → ${expense.transfer_to_account_name ?? "?"}`
-                          : (expense.account_name ?? "—")}
+                          : (expense.account_name ?? (
+                              <span className="text-muted-foreground">—</span>
+                            ))}
                       </TableCell>
                       <TableCell
                         className={cn(
@@ -774,20 +864,22 @@ export default function ExpensesPage() {
                         {formatAmount(parseFloat(expense.amount), currency)}
                       </TableCell>
                       <TableCell>
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                           <Button
                             variant="ghost"
                             size="icon"
+                            className="h-8 w-8"
                             onClick={() => openEdit(expense)}
                           >
-                            <Pencil className="h-4 w-4" />
+                            <Pencil className="h-3.5 w-3.5" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
                             onClick={() => handleDelete(expense.id)}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
                       </TableCell>
