@@ -5,9 +5,38 @@ from app.api.deps import get_current_user
 from app.db.session import get_db
 from app.models.user import User
 from app.repositories.app_config_repository import AppConfigRepository
-from app.schemas.app_config import AppConfigResponse, AppConfigUpdate
+from app.schemas.app_config import (
+    AppConfigResponse,
+    AppConfigUpdate,
+    PublicConfigResponse,
+    SidebarButtonConfig,
+)
 
 router = APIRouter(prefix="/config", tags=["Configuration"])
+
+
+@router.get("/public", response_model=PublicConfigResponse)
+async def get_public_config(db: AsyncSession = Depends(get_db)):
+    """Public endpoint - no auth required. Returns signup status and sidebar button."""
+    repo = AppConfigRepository(db)
+    signup = await repo.get_by_key("signup.enabled")
+
+    # Sidebar button
+    sb_configs = await repo.list_by_prefix("sidebar_button.")
+    sb_map = {c.key: c.value for c in sb_configs}
+    sidebar_button = None
+    if sb_map.get("sidebar_button.enabled") == "true":
+        sidebar_button = SidebarButtonConfig(
+            enabled=True,
+            label=sb_map.get("sidebar_button.label", ""),
+            url=sb_map.get("sidebar_button.url", ""),
+            variant=sb_map.get("sidebar_button.variant", "outline"),
+        )
+
+    return PublicConfigResponse(
+        signup_enabled=signup.value == "true" if signup else True,
+        sidebar_button=sidebar_button,
+    )
 
 
 @router.get("", response_model=list[AppConfigResponse])

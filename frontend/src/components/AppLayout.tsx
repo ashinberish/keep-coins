@@ -21,12 +21,17 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { Skeleton } from "@/components/ui/skeleton"
-import { configApi, type AppConfig } from "@/services/config"
+import {
+  configApi,
+  type AppConfig,
+  type SidebarButtonConfig,
+} from "@/services/config"
 import { useAuthStore } from "@/store/auth"
 import {
   BarChart3,
   ChevronsUpDown,
   Coins,
+  ExternalLink,
   Landmark,
   LogOut,
   Receipt,
@@ -69,6 +74,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     new Set(ALL_NAV_ITEMS.map((i) => i.key))
   )
   const [configLoaded, setConfigLoaded] = useState(false)
+  const [sidebarButton, setSidebarButton] =
+    useState<SidebarButtonConfig | null>(null)
 
   useEffect(() => {
     let ignore = false
@@ -86,6 +93,21 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               .map((c: AppConfig) => c.key)
           )
         )
+        // Sidebar button from config list
+        const sbMap: Record<string, string> = {}
+        data
+          .filter((c: AppConfig) => c.key.startsWith("sidebar_button."))
+          .forEach((c: AppConfig) => {
+            sbMap[c.key] = c.value
+          })
+        if (sbMap["sidebar_button.enabled"] === "true") {
+          setSidebarButton({
+            enabled: true,
+            label: sbMap["sidebar_button.label"] || "Feedback",
+            url: sbMap["sidebar_button.url"] || "",
+            variant: sbMap["sidebar_button.variant"] || "outline",
+          })
+        }
       })
       .catch(() => {})
       .finally(() => {
@@ -147,6 +169,25 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </SidebarGroup>
         </SidebarContent>
         <SidebarFooter className="p-2">
+          {sidebarButton && sidebarButton.url && (
+            <div className="px-2 pb-2">
+              <a
+                href={sidebarButton.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`inline-flex w-full items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                  sidebarButton.variant === "default"
+                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                    : sidebarButton.variant === "secondary"
+                      ? "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                      : "border border-input bg-background hover:bg-accent hover:text-accent-foreground"
+                }`}
+              >
+                {sidebarButton.label}
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
+          )}
           <SidebarMenu>
             <SidebarMenuItem>
               <DropdownMenu>
