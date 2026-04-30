@@ -1,3 +1,4 @@
+import { AppVersionInline } from "@/components/AppVersion"
 import { useTheme } from "@/components/theme-provider"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -638,6 +639,10 @@ export default function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <div className="flex justify-center">
+        <AppVersionInline />
+      </div>
 
       {/* Delete account confirmation dialog */}
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
