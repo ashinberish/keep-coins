@@ -34,6 +34,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { UsernameChecker } from "@/components/UsernameChecker"
 import { CURRENCIES, currencyIcon } from "@/lib/currency"
 import { accountsApi, type Account } from "@/services/accounts"
 import { categoriesApi, type Category } from "@/services/categories"
@@ -93,6 +94,7 @@ export default function SettingsPage() {
     setDefaultAccount,
     setTheme: setThemeDB,
     updateUsername,
+    updateName,
     deleteAccount,
   } = useAuthStore()
   const currentCurrency = user?.currency ?? "USD"
@@ -102,6 +104,11 @@ export default function SettingsPage() {
   const [editingUsername, setEditingUsername] = useState(false)
   const [newUsername, setNewUsername] = useState("")
   const [usernameSaving, setUsernameSaving] = useState(false)
+
+  // Name edit state
+  const [editingName, setEditingName] = useState(false)
+  const [newFullName, setNewFullName] = useState("")
+  const [nameSaving, setNameSaving] = useState(false)
 
   // Delete account dialog state
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -220,58 +227,115 @@ export default function SettingsPage() {
             <Input value={user?.email ?? ""} disabled />
           </div>
           <div className="grid gap-1.5">
-            <Label>Username</Label>
-            {editingUsername ? (
-              <div className="flex items-center gap-2">
+            <Label>Name</Label>
+            {editingName ? (
+              <div className="space-y-2">
                 <Input
-                  value={newUsername}
-                  onChange={(e) => setNewUsername(e.target.value)}
-                  placeholder="New username"
+                  value={newFullName}
+                  onChange={(e) => setNewFullName(e.target.value)}
+                  placeholder="Full name"
                   autoFocus
                 />
-                <Button
-                  size="sm"
-                  disabled={usernameSaving || !newUsername.trim()}
-                  onClick={async () => {
-                    setUsernameSaving(true)
-                    try {
-                      await updateUsername(newUsername.trim())
-                      toast.success("Username updated")
-                      setEditingUsername(false)
-                    } catch (err: unknown) {
-                      const message =
-                        (err as { response?: { data?: { detail?: string } } })
-                          ?.response?.data?.detail ??
-                        "Failed to update username"
-                      toast.error(message)
-                    } finally {
-                      setUsernameSaving(false)
-                    }
-                  }}
-                >
-                  {usernameSaving ? "Saving…" : "Save"}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setEditingUsername(false)}
-                >
-                  Cancel
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    disabled={nameSaving || !newFullName.trim()}
+                    onClick={async () => {
+                      setNameSaving(true)
+                      try {
+                        await updateName(newFullName.trim())
+                        toast.success("Name updated")
+                        setEditingName(false)
+                      } catch {
+                        toast.error("Failed to update name")
+                      } finally {
+                        setNameSaving(false)
+                      }
+                    }}
+                  >
+                    {nameSaving ? "Saving…" : "Save"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setEditingName(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <Input value={user?.username ?? ""} disabled />
+                <Input value={user?.full_name ?? "Not set"} disabled />
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => {
-                    setNewUsername(user?.username ?? "")
-                    setEditingUsername(true)
+                    setNewFullName(user?.full_name ?? "")
+                    setEditingName(true)
                   }}
                 >
                   Edit
                 </Button>
+              </div>
+            )}
+          </div>
+          <div className="grid gap-1.5">
+            {editingUsername ? (
+              <div className="space-y-2">
+                <UsernameChecker
+                  value={newUsername}
+                  onChange={setNewUsername}
+                  currentUsername={user?.username}
+                />
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    disabled={usernameSaving || !newUsername.trim()}
+                    onClick={async () => {
+                      setUsernameSaving(true)
+                      try {
+                        await updateUsername(newUsername.trim())
+                        toast.success("Username updated")
+                        setEditingUsername(false)
+                      } catch (err: unknown) {
+                        const message =
+                          (err as { response?: { data?: { detail?: string } } })
+                            ?.response?.data?.detail ??
+                          "Failed to update username"
+                        toast.error(message)
+                      } finally {
+                        setUsernameSaving(false)
+                      }
+                    }}
+                  >
+                    {usernameSaving ? "Saving…" : "Save"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setEditingUsername(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>Username</Label>
+                <div className="flex items-center gap-2">
+                  <Input value={user?.username ?? ""} disabled />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setNewUsername(user?.username ?? "")
+                      setEditingUsername(true)
+                    }}
+                  >
+                    Edit
+                  </Button>
+                </div>
               </div>
             )}
           </div>
@@ -557,8 +621,8 @@ export default function SettingsPage() {
           <div>
             <p className="text-sm font-medium text-destructive">Danger Zone</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              This will permanently deactivate your account. All your data will
-              be preserved but you will no longer be able to log in.
+              This will permanently deactivate your account. You will no longer
+              be able to log in. Your data will be erased.
             </p>
             <Button
               variant="destructive"

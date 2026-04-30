@@ -63,3 +63,18 @@ def send_verification_email(to_email: str, code: str) -> None:
         "html": _build_html(code),
     }
     resend.Emails.send(params)
+
+
+def send_password_reset_email(to_email: str, code: str) -> None:
+    template = (TEMPLATES_DIR / "reset_password.html").read_text(encoding="utf-8")
+    html = template.replace("{{otp_digits}}", _render_otp_digits(code))
+    html = html.replace(
+        "{{expire_minutes}}", str(settings.VERIFICATION_CODE_EXPIRE_MINUTES)
+    )
+    params: resend.Emails.SendParams = {
+        "from": settings.RESEND_FROM_EMAIL,
+        "to": [to_email],
+        "subject": f"KeepCoins - Password reset code: {code}",
+        "html": html,
+    }
+    resend.Emails.send(params)

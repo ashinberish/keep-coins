@@ -20,6 +20,7 @@ class User(Base):
     username: Mapped[str] = mapped_column(
         String(100), unique=True, index=True, nullable=False
     )
+    full_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     currency: Mapped[str] = mapped_column(
         String(3), default="USD", server_default="USD"

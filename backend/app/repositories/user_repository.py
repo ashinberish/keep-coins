@@ -21,7 +21,9 @@ class UserRepository:
         return result.scalar_one_or_none()
 
     async def get_by_username(self, username: str) -> User | None:
-        result = await self.db.execute(select(User).where(User.username == username))
+        result = await self.db.execute(
+            select(User).where(User.username == username.lower())
+        )
         return result.scalar_one_or_none()
 
     async def create(self, user: User) -> User:
@@ -50,6 +52,12 @@ class UserRepository:
         await self.db.refresh(user)
         return user
 
+    async def update_name(self, user: User, full_name: str) -> User:
+        user.full_name = full_name
+        await self.db.commit()
+        await self.db.refresh(user)
+        return user
+
     async def update_theme(self, user: User, theme: str) -> User:
         user.theme = theme
         await self.db.commit()
@@ -64,4 +72,5 @@ class UserRepository:
 
     async def soft_delete(self, user: User) -> None:
         user.is_active = False
+        user.email = f"{user.email}_deleted_{user.id}"
         await self.db.commit()

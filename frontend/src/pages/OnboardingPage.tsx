@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
@@ -46,13 +47,17 @@ const ACCOUNT_TYPES: { value: AccountType; label: string; icon: string }[] = [
   { value: "credit_card", label: "Credit Card", icon: "💳" },
 ]
 
-const STEPS = ["Currency", "Categories", "Accounts"] as const
+const STEPS = ["Name", "Currency", "Categories", "Accounts"] as const
 
 export default function OnboardingPage() {
   const navigate = useNavigate()
-  const { user, setCurrency, completeOnboarding } = useAuthStore()
+  const { user, setCurrency, updateName, completeOnboarding } = useAuthStore()
   const [step, setStep] = useState(0)
   const [finishing, setFinishing] = useState(false)
+
+  // Name state
+  const [fullName, setFullName] = useState(user?.full_name ?? "")
+  const [nameSaving, setNameSaving] = useState(false)
 
   // Currency state
   const [selectedCurrency, setSelectedCurrency] = useState(
@@ -89,10 +94,26 @@ export default function OnboardingPage() {
     )
   }, [])
 
+  async function handleNameNext() {
+    if (!fullName.trim()) {
+      toast.error("Please enter your name")
+      return
+    }
+    setNameSaving(true)
+    try {
+      await updateName(fullName.trim())
+      setStep(1)
+    } catch {
+      toast.error("Failed to save name")
+    } finally {
+      setNameSaving(false)
+    }
+  }
+
   async function handleCurrencyNext() {
     try {
       await setCurrency(selectedCurrency)
-      setStep(1)
+      setStep(2)
     } catch {
       toast.error("Failed to update currency")
     }
@@ -212,8 +233,42 @@ export default function OnboardingPage() {
         ))}
       </div>
 
-      {/* Step 1: Currency */}
+      {/* Step 1: Name */}
       {step === 0 && (
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-xl">What's your name?</CardTitle>
+            <CardDescription>Let us know what to call you</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="fullName">Full name</Label>
+              <Input
+                id="fullName"
+                placeholder="Enter your full name"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                autoFocus
+              />
+            </div>
+          </CardContent>
+          <CardFooter>
+            <Button
+              className="ml-auto"
+              onClick={handleNameNext}
+              disabled={nameSaving || !fullName.trim()}
+            >
+              {nameSaving ? (
+                <Loader2 className="mr-1 size-4 animate-spin" />
+              ) : null}
+              Next <ArrowRight className="ml-1 size-4" />
+            </Button>
+          </CardFooter>
+        </Card>
+      )}
+
+      {/* Step 2: Currency */}
+      {step === 1 && (
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <CardTitle className="text-xl">Choose your currency</CardTitle>
@@ -250,7 +305,10 @@ export default function OnboardingPage() {
               })}
             </div>
           </CardContent>
-          <CardFooter>
+          <CardFooter className="flex justify-between">
+            <Button variant="outline" onClick={() => setStep(0)}>
+              <ArrowLeft className="mr-1 size-4" /> Back
+            </Button>
             <Button className="ml-auto" onClick={handleCurrencyNext}>
               Next <ArrowRight className="ml-1 size-4" />
             </Button>
@@ -258,8 +316,8 @@ export default function OnboardingPage() {
         </Card>
       )}
 
-      {/* Step 2: Categories */}
-      {step === 1 && (
+      {/* Step 3: Categories */}
+      {step === 2 && (
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <CardTitle className="text-xl">Set up categories</CardTitle>
@@ -352,18 +410,18 @@ export default function OnboardingPage() {
             </div>
           </CardContent>
           <CardFooter className="flex justify-between">
-            <Button variant="outline" onClick={() => setStep(0)}>
+            <Button variant="outline" onClick={() => setStep(1)}>
               <ArrowLeft className="mr-1 size-4" /> Back
             </Button>
-            <Button onClick={() => setStep(2)}>
+            <Button onClick={() => setStep(3)}>
               Next <ArrowRight className="ml-1 size-4" />
             </Button>
           </CardFooter>
         </Card>
       )}
 
-      {/* Step 3: Accounts */}
-      {step === 2 && (
+      {/* Step 4: Accounts */}
+      {step === 3 && (
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <CardTitle className="text-xl">Set up accounts</CardTitle>
@@ -460,7 +518,7 @@ export default function OnboardingPage() {
             </div>
           </CardContent>
           <CardFooter className="flex justify-between">
-            <Button variant="outline" onClick={() => setStep(1)}>
+            <Button variant="outline" onClick={() => setStep(2)}>
               <ArrowLeft className="mr-1 size-4" /> Back
             </Button>
             <Button onClick={handleFinish} disabled={finishing}>

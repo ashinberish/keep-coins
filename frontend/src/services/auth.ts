@@ -21,6 +21,7 @@ export interface UserResponse {
   id: string
   email: string
   username: string
+  full_name: string | null
   is_active: boolean
   is_superuser: boolean
   is_email_verified: boolean
@@ -40,6 +41,11 @@ export interface ResendCodePayload {
   email: string
 }
 
+export interface CheckUsernameResponse {
+  available: boolean
+  suggestions: string[]
+}
+
 export const authApi = {
   signup: (data: SignupPayload) => api.post<UserResponse>("/auth/signup", data),
 
@@ -50,6 +56,16 @@ export const authApi = {
 
   resendVerification: (data: ResendCodePayload) =>
     api.post<{ message: string }>("/auth/resend-verification", data),
+
+  forgotPassword: (email: string) =>
+    api.post<{ message: string }>("/auth/forgot-password", { email }),
+
+  resetPassword: (email: string, code: string, new_password: string) =>
+    api.post<{ message: string }>("/auth/reset-password", {
+      email,
+      code,
+      new_password,
+    }),
 
   getMe: () => api.get<UserResponse>("/auth/me"),
 
@@ -63,6 +79,14 @@ export const authApi = {
 
   updateUsername: (username: string) =>
     api.patch<UserResponse>("/auth/me/username", { username }),
+
+  updateName: (full_name: string) =>
+    api.patch<UserResponse>("/auth/me/name", { full_name }),
+
+  checkUsername: (username: string) =>
+    api.get<CheckUsernameResponse>(
+      `/auth/check-username/${encodeURIComponent(username)}`
+    ),
 
   updateTheme: (theme: string) =>
     api.patch<UserResponse>("/auth/me/theme", { theme }),

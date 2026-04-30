@@ -1,18 +1,10 @@
 import { AppVersion } from "@/components/AppVersion"
 import { Logo } from "@/components/Logo"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useAuthStore } from "@/store/auth"
-import { Eye, EyeOff } from "lucide-react"
+import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { useState, type FormEvent } from "react"
 import { Link, useNavigate } from "react-router"
 import { toast } from "sonner"
@@ -43,31 +35,47 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center p-4">
-      <div className="mb-8 text-center">
-        <Logo className="justify-center" />
-        <p className="mt-1 text-sm text-muted-foreground">
-          Track your money, effortlessly.
-        </p>
+    <div className="flex min-h-svh">
+      {/* Left side - decorative */}
+      <div className="hidden flex-1 items-center justify-center bg-muted/30 lg:flex">
+        <div className="max-w-md space-y-4 px-8">
+          <Logo size="lg" />
+          <p className="text-lg text-muted-foreground">
+            Take control of your finances. Track expenses, manage budgets, and
+            reach your financial goals — all in one place.
+          </p>
+        </div>
       </div>
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Welcome back</CardTitle>
-          <CardDescription>Sign in to your account to continue</CardDescription>
-        </CardHeader>
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
-            {error && (
-              <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                {error}
-              </div>
-            )}
+
+      {/* Right side - form */}
+      <div className="flex flex-1 flex-col items-center justify-center p-6 sm:p-8">
+        <div className="w-full max-w-sm">
+          <div className="mb-8 lg:hidden">
+            <Logo size="sm" />
+          </div>
+
+          <div className="mb-8 space-y-2">
+            <h1 className="text-2xl font-semibold tracking-tight">
+              Welcome back
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Sign in to your account to continue
+            </p>
+          </div>
+
+          {error && (
+            <div className="mb-6 rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="name@example.com"
+                placeholder="you@email.com"
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value)
@@ -78,13 +86,22 @@ export default function LoginPage() {
                 autoFocus
               />
             </div>
+
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <Link
+                  to="/forgot-password"
+                  className="text-xs text-muted-foreground transition-colors hover:text-primary"
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <div className="relative">
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="Enter your password"
+                  placeholder="••••••••"
                   value={password}
                   onChange={(e) => {
                     setPassword(e.target.value)
@@ -108,21 +125,27 @@ export default function LoginPage() {
                 </button>
               </div>
             </div>
-          </CardContent>
-          <CardFooter className="flex flex-col gap-4 pt-2">
+
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Signing in…" : "Sign in"}
+              {isLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              Sign in
             </Button>
-            <p className="text-center text-sm text-muted-foreground">
-              Don&apos;t have an account?{" "}
-              <Link to="/signup" className="text-primary underline">
-                Sign up
-              </Link>
-            </p>
-          </CardFooter>
-        </form>
-      </Card>
-      <AppVersion />
+          </form>
+
+          <p className="mt-6 text-center text-sm text-muted-foreground">
+            Don&apos;t have an account?{" "}
+            <Link
+              to="/signup"
+              className="font-medium text-primary hover:underline"
+            >
+              Create account
+            </Link>
+          </p>
+        </div>
+        <AppVersion />
+      </div>
     </div>
   )
 }
