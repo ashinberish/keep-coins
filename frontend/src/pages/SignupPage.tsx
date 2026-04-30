@@ -4,9 +4,10 @@ import { UsernameChecker } from "@/components/UsernameChecker"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { configApi } from "@/services/config"
 import { useAuthStore } from "@/store/auth"
-import { Eye, EyeOff, Loader2 } from "lucide-react"
-import { useState, type FormEvent } from "react"
+import { Eye, EyeOff, Loader2, ShieldX } from "lucide-react"
+import { useEffect, useState, type FormEvent } from "react"
 import { Link, useNavigate } from "react-router"
 import { toast } from "sonner"
 
@@ -21,6 +22,16 @@ export default function SignupPage() {
   const [localError, setLocalError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
+  const [signupDisabled, setSignupDisabled] = useState(false)
+
+  useEffect(() => {
+    configApi
+      .getPublic()
+      .then(({ data }) => {
+        if (!data.signup_enabled) setSignupDisabled(true)
+      })
+      .catch(() => {})
+  }, [])
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -96,115 +107,156 @@ export default function SignupPage() {
             <h1 className="text-2xl font-semibold tracking-tight">
               Create an account
             </h1>
-            <p className="text-sm text-muted-foreground">
-              Enter your details to get started
-            </p>
+            {!signupDisabled && (
+              <p className="text-sm text-muted-foreground">
+                Enter your details to get started
+              </p>
+            )}
           </div>
 
-          {displayError && (
-            <div className="mb-6 rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              {displayError}
-            </div>
-          )}
+          <div className="relative">
+            {signupDisabled && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center">
+                <div className="absolute inset-0 rounded-xl bg-gradient-to-b from-background/80 via-background/95 to-background" />
+                <div className="relative flex flex-col items-center gap-4 px-6 text-center">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full border bg-card shadow-sm">
+                    <ShieldX className="h-6 w-6 text-destructive" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-lg font-semibold">
+                      Signups are currently closed
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      New registrations are not available at this time.
+                    </p>
+                  </div>
+                  <Link
+                    to="/login"
+                    className="mt-1 inline-flex items-center gap-1 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+                  >
+                    Back to sign in
+                  </Link>
+                </div>
+              </div>
+            )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@email.com"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value)
-                  clearError()
-                  setLocalError(null)
-                }}
-                required
-                autoComplete="email"
-                autoFocus
-              />
-            </div>
+            <div
+              className={
+                signupDisabled
+                  ? "pointer-events-none opacity-10 select-none"
+                  : ""
+              }
+            >
+              {displayError && (
+                <div className="mb-6 rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                  {displayError}
+                </div>
+              )}
 
-            <UsernameChecker
-              value={username}
-              onChange={(val) => {
-                setUsername(val)
-                clearError()
-                setLocalError(null)
-              }}
-            />
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="you@email.com"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value)
+                      clearError()
+                      setLocalError(null)
+                    }}
+                    required
+                    autoComplete="email"
+                    autoFocus
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="8+ characters"
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value)
+                <UsernameChecker
+                  value={username}
+                  onChange={(val) => {
+                    setUsername(val)
                     clearError()
                     setLocalError(null)
                   }}
-                  required
-                  autoComplete="new-password"
-                  className="pr-10"
                 />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
-                  onClick={() => setShowPassword(!showPassword)}
-                  tabIndex={-1}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm password</Label>
-              <div className="relative">
-                <Input
-                  id="confirmPassword"
-                  type={showConfirm ? "text" : "password"}
-                  placeholder="Repeat your password"
-                  value={confirmPassword}
-                  onChange={(e) => {
-                    setConfirmPassword(e.target.value)
-                    setLocalError(null)
-                  }}
-                  required
-                  autoComplete="new-password"
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
-                  onClick={() => setShowConfirm(!showConfirm)}
-                  tabIndex={-1}
-                >
-                  {showConfirm ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="8+ characters"
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value)
+                        clearError()
+                        setLocalError(null)
+                      }}
+                      required
+                      autoComplete="new-password"
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
+                      onClick={() => setShowPassword(!showPassword)}
+                      tabIndex={-1}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : null}
-              Create account
-            </Button>
-          </form>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm password</Label>
+                  <div className="relative">
+                    <Input
+                      id="confirmPassword"
+                      type={showConfirm ? "text" : "password"}
+                      placeholder="Repeat your password"
+                      value={confirmPassword}
+                      onChange={(e) => {
+                        setConfirmPassword(e.target.value)
+                        setLocalError(null)
+                      }}
+                      required
+                      autoComplete="new-password"
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
+                      onClick={() => setShowConfirm(!showConfirm)}
+                      tabIndex={-1}
+                    >
+                      {showConfirm ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={isLoading || signupDisabled}
+                >
+                  {isLoading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : null}
+                  Create account
+                </Button>
+              </form>
+            </div>
+          </div>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
             Already have an account?{" "}

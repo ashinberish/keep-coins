@@ -425,7 +425,7 @@ export default function AccountsPage() {
         <Card>
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">Total Balance</p>
-            <p className="text-2xl font-bold text-green-600">
+            <p className="text-2xl font-bold text-green-700 dark:text-green-400">
               {formatCurrency(totalBalance, currency)}
             </p>
             <p className="mt-0.5 text-xs text-muted-foreground">
@@ -436,7 +436,7 @@ export default function AccountsPage() {
         <Card>
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">Credit Card Debt</p>
-            <p className="text-2xl font-bold text-red-600">
+            <p className="text-2xl font-bold text-red-700 dark:text-red-400">
               {formatCurrency(totalDebt, currency)}
             </p>
           </CardContent>
@@ -445,7 +445,7 @@ export default function AccountsPage() {
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">Net Worth</p>
             <p
-              className={`text-2xl font-bold ${netWorth >= 0 ? "text-green-600" : "text-red-600"}`}
+              className={`text-2xl font-bold ${netWorth >= 0 ? "text-green-700 dark:text-green-400" : "text-red-700 dark:text-red-400"}`}
             >
               {formatCurrency(netWorth, currency)}
             </p>
@@ -506,6 +506,7 @@ export default function AccountsPage() {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8"
+                      aria-label="Edit account"
                       onClick={() => openEdit(account)}
                     >
                       <Pencil className="h-3.5 w-3.5" />
@@ -514,6 +515,7 @@ export default function AccountsPage() {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-destructive"
+                      aria-label="Delete account"
                       onClick={() => {
                         setDeleteId(account.id)
                         setDeleteOpen(true)
@@ -540,7 +542,7 @@ export default function AccountsPage() {
                         )}
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">Used</span>
-                          <span className="font-medium text-red-600">
+                          <span className="font-medium text-red-700 dark:text-red-400">
                             {formatCurrency(Number(account.debt), currency)}
                           </span>
                         </div>
@@ -549,7 +551,7 @@ export default function AccountsPage() {
                             <span className="text-muted-foreground">
                               Available
                             </span>
-                            <span className="font-medium text-green-600">
+                            <span className="font-medium text-green-700 dark:text-green-400">
                               {formatCurrency(
                                 Number(account.credit_limit) -
                                   Number(account.debt),
@@ -576,7 +578,7 @@ export default function AccountsPage() {
                       <>
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">Balance</span>
-                          <span className="font-medium text-green-600">
+                          <span className="font-medium text-green-700 dark:text-green-400">
                             {formatCurrency(Number(account.balance), currency)}
                           </span>
                         </div>
@@ -584,7 +586,7 @@ export default function AccountsPage() {
                         <div className="flex justify-between text-sm">
                           <span className="text-muted-foreground">Net</span>
                           <span
-                            className={`font-semibold ${Number(account.balance) >= 0 ? "text-green-600" : "text-red-600"}`}
+                            className={`font-semibold ${Number(account.balance) >= 0 ? "text-green-700 dark:text-green-400" : "text-red-700 dark:text-red-400"}`}
                           >
                             {formatCurrency(Number(account.balance), currency)}
                           </span>

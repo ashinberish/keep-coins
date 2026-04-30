@@ -9,6 +9,24 @@
       content="KeepCoins — Track your money effortlessly. Manage expenses, income, accounts, and budgets all in one place."
     />
     <title>Keep Coins</title>
+    <!-- Inline critical styles to prevent FOUC while CSS loads -->
+    <style>
+      :root {
+        --background: oklch(1 0 0);
+        --foreground: oklch(0.145 0 0);
+      }
+      .dark {
+        --background: oklch(0.145 0 0);
+        --foreground: oklch(0.985 0 0);
+      }
+      html {
+        font-family: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+      }
+      body {
+        background-color: var(--background);
+        color: var(--foreground);
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

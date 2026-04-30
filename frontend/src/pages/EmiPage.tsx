@@ -413,6 +413,7 @@ export default function EmiPage() {
                   <Button
                     variant="ghost"
                     size="icon"
+                    aria-label="Edit EMI"
                     onClick={() => openEdit(emi)}
                   >
                     <Pencil className="h-4 w-4" />
@@ -420,6 +421,7 @@ export default function EmiPage() {
                   <Button
                     variant="ghost"
                     size="icon"
+                    aria-label="Delete EMI"
                     onClick={() => handleDelete(emi.id)}
                   >
                     <Trash2 className="h-4 w-4" />

@@ -111,13 +111,23 @@ export default function SummaryPage() {
     <div className="space-y-6">
       {/* Month navigation */}
       <div className="flex items-center justify-between">
-        <Button variant="outline" size="icon" onClick={prevMonth}>
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label="Previous month"
+          onClick={prevMonth}
+        >
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <h2 className="text-lg font-semibold">
           {MONTH_NAMES[month - 1]} {year}
         </h2>
-        <Button variant="outline" size="icon" onClick={nextMonth}>
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label="Next month"
+          onClick={nextMonth}
+        >
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>

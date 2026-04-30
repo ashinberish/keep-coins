@@ -213,7 +213,12 @@ export default function GroupDetailPage() {
     <div className="mx-auto max-w-2xl space-y-4">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/groups")}>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Back to groups"
+          onClick={() => navigate("/groups")}
+        >
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <span className="text-2xl">{group.icon}</span>
@@ -236,9 +241,9 @@ export default function GroupDetailPage() {
               <p
                 className={`text-sm font-semibold ${
                   b.balance > 0
-                    ? "text-green-600"
+                    ? "text-green-700 dark:text-green-400"
                     : b.balance < 0
-                      ? "text-red-600"
+                      ? "text-red-700 dark:text-red-400"
                       : ""
                 }`}
               >
@@ -311,6 +316,7 @@ export default function GroupDetailPage() {
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7 text-destructive"
+                        aria-label="Delete expense"
                         onClick={() => handleDeleteExpense(exp.id)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -385,6 +391,7 @@ export default function GroupDetailPage() {
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 text-destructive"
+                    aria-label="Remove member"
                     onClick={() => handleRemoveMember(m.user_id)}
                   >
                     <UserMinus className="h-3.5 w-3.5" />
@@ -435,6 +442,7 @@ export default function GroupDetailPage() {
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7 text-destructive"
+                      aria-label="Delete settlement"
                       onClick={() => handleDeleteSettlement(s.id)}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
