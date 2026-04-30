@@ -6,12 +6,16 @@ from app.db.session import get_db
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
 from app.schemas.auth import (
+    CheckUsernameResponse,
+    ForgotPasswordRequest,
     MessageResponse,
     RefreshTokenRequest,
     ResendCodeRequest,
+    ResetPasswordRequest,
     TokenResponse,
     UpdateCurrencyRequest,
     UpdateDefaultAccountRequest,
+    UpdateNameRequest,
     UpdateThemeRequest,
     UpdateUsernameRequest,
     UserCreate,
@@ -49,6 +53,22 @@ async def resend_verification(
 async def login(data: UserLogin, db: AsyncSession = Depends(get_db)):
     service = AuthService(db)
     return await service.login(data)
+
+
+@router.post("/forgot-password", response_model=MessageResponse)
+async def forgot_password(
+    data: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)
+):
+    service = AuthService(db)
+    return await service.forgot_password(data.email)
+
+
+@router.post("/reset-password", response_model=MessageResponse)
+async def reset_password(
+    data: ResetPasswordRequest, db: AsyncSession = Depends(get_db)
+):
+    service = AuthService(db)
+    return await service.reset_password(data.email, data.code, data.new_password)
 
 
 @router.post("/refresh", response_model=TokenResponse)
@@ -98,7 +118,59 @@ async def update_username(
             status_code=http_status.HTTP_409_CONFLICT,
             detail="Username already taken",
         )
-    return await repo.update_username(current_user, data.username)
+    return await repo.update_username(current_user, data.username.lower())
+
+
+@router.patch("/me/name", response_model=UserResponse)
+async def update_name(
+    data: UpdateNameRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    repo = UserRepository(db)
+    return await repo.update_name(current_user, data.full_name.strip())
+
+
+@router.get("/check-username/{username}", response_model=CheckUsernameResponse)
+async def check_username(
+    username: str,
+    db: AsyncSession = Depends(get_db),
+):
+    import random
+    import re
+
+    from fastapi import HTTPException
+    from fastapi import status as http_status
+
+    if not re.match(r"^[a-zA-Z0-9_]{3,30}$", username):
+        raise HTTPException(
+            status_code=http_status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Username must be 3-30 characters and contain only letters, numbers, and underscores",
+        )
+
+    repo = UserRepository(db)
+    existing = await repo.get_by_username(username)
+    if not existing:
+        return CheckUsernameResponse(available=True, suggestions=[])
+
+    # Generate suggestions
+    suggestions: list[str] = []
+    base = re.sub(r"\d+$", "", username.lower())
+    candidates = [
+        f"{base}{random.randint(1, 999)}",
+        f"{base}_{random.randint(1, 99)}",
+        f"{username.lower()}{random.randint(1, 99)}",
+        f"{base}_x{random.randint(1, 99)}",
+        f"the_{username.lower()}",
+    ]
+    for candidate in candidates:
+        if len(suggestions) >= 3:
+            break
+        check = await repo.get_by_username(candidate)
+        if not check:
+            suggestions.append(candidate)
+
+    return CheckUsernameResponse(available=False, suggestions=suggestions)
 
 
 @router.patch("/me/theme", response_model=UserResponse)

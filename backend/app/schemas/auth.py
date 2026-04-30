@@ -28,6 +28,7 @@ class UserResponse(BaseModel):
     id: uuid.UUID
     email: str
     username: str
+    full_name: str | None = None
     is_active: bool
     is_superuser: bool = False
     is_email_verified: bool = False
@@ -56,6 +57,15 @@ class UpdateThemeRequest(BaseModel):
     theme: str
 
 
+class UpdateNameRequest(BaseModel):
+    full_name: str
+
+
+class CheckUsernameResponse(BaseModel):
+    available: bool
+    suggestions: list[str] = []
+
+
 class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
@@ -73,3 +83,13 @@ class VerifyEmailRequest(BaseModel):
 
 class ResendCodeRequest(BaseModel):
     email: EmailStr
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    code: str
+    new_password: str

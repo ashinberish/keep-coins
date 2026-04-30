@@ -96,9 +96,16 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  const initials = user?.username
-    ? user.username.slice(0, 2).toUpperCase()
-    : (user?.email?.slice(0, 2).toUpperCase() ?? "?")
+  const initials = user?.full_name
+    ? user.full_name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase()
+    : user?.username
+      ? user.username.slice(0, 2).toUpperCase()
+      : (user?.email?.slice(0, 2).toUpperCase() ?? "?")
 
   return (
     <SidebarProvider>
@@ -152,13 +159,15 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     </AvatarFallback>
                   </Avatar>
                   <span className="flex-1 truncate text-left text-sm">
-                    {user?.username ?? user?.email}
+                    {user?.full_name ?? user?.username ?? user?.email}
                   </span>
                   <ChevronsUpDown className="ml-auto h-4 w-4 text-muted-foreground" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="top" align="start" className="w-56">
                   <div className="px-2 py-1.5">
-                    <p className="text-sm font-medium">{user?.username}</p>
+                    <p className="text-sm font-medium">
+                      {user?.full_name ?? user?.username}
+                    </p>
                     <p className="text-xs text-muted-foreground">
                       {user?.email}
                     </p>

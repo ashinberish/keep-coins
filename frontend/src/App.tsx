@@ -6,6 +6,7 @@ import AccountsPage from "@/pages/AccountsPage"
 import AdminSettingsPage from "@/pages/AdminSettingsPage"
 import EmiPage from "@/pages/EmiPage"
 import ExpensesPage from "@/pages/ExpensesPage"
+import ForgotPasswordPage from "@/pages/ForgotPasswordPage"
 import GroupDetailPage from "@/pages/GroupDetailPage"
 import GroupsPage from "@/pages/GroupsPage"
 import LoginPage from "@/pages/LoginPage"
@@ -61,6 +62,14 @@ export function App() {
           element={
             <GuestRoute>
               <VerifyEmailPage />
+            </GuestRoute>
+          }
+        />
+        <Route
+          path="/forgot-password"
+          element={
+            <GuestRoute>
+              <ForgotPasswordPage />
             </GuestRoute>
           }
         />

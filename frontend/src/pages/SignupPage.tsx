@@ -1,18 +1,11 @@
 import { AppVersion } from "@/components/AppVersion"
 import { Logo } from "@/components/Logo"
+import { UsernameChecker } from "@/components/UsernameChecker"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useAuthStore } from "@/store/auth"
-import { Eye, EyeOff } from "lucide-react"
+import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { useState, type FormEvent } from "react"
 import { Link, useNavigate } from "react-router"
 import { toast } from "sonner"
@@ -54,31 +47,73 @@ export default function SignupPage() {
   const displayError = localError ?? error
 
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center p-4">
-      <div className="mb-8 text-center">
-        <Logo className="justify-center" />
-        <p className="mt-1 text-sm text-muted-foreground">
-          Track your money, effortlessly.
-        </p>
-      </div>
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Create an account</CardTitle>
-          <CardDescription>Enter your details to get started</CardDescription>
-        </CardHeader>
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
-            {displayError && (
-              <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                {displayError}
+    <div className="flex min-h-svh">
+      {/* Left side - decorative */}
+      <div className="hidden flex-1 items-center justify-center bg-muted/30 lg:flex">
+        <div className="max-w-md space-y-4 px-8">
+          <Logo size="lg" />
+          <p className="text-lg text-muted-foreground">
+            Join thousands of users who track their finances smarter. Set up in
+            under a minute.
+          </p>
+          <div className="space-y-3 pt-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-medium text-primary">
+                1
               </div>
-            )}
+              <span className="text-sm text-muted-foreground">
+                Create your account
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-medium text-primary">
+                2
+              </div>
+              <span className="text-sm text-muted-foreground">
+                Verify your email
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-sm font-medium text-primary">
+                3
+              </div>
+              <span className="text-sm text-muted-foreground">
+                Start tracking expenses
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Right side - form */}
+      <div className="flex flex-1 flex-col items-center justify-center p-6 sm:p-8">
+        <div className="w-full max-w-sm">
+          <div className="mb-8 lg:hidden">
+            <Logo size="sm" />
+          </div>
+
+          <div className="mb-8 space-y-2">
+            <h1 className="text-2xl font-semibold tracking-tight">
+              Create an account
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Enter your details to get started
+            </p>
+          </div>
+
+          {displayError && (
+            <div className="mb-6 rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {displayError}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="name@example.com"
+                placeholder="you@email.com"
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value)
@@ -90,29 +125,23 @@ export default function SignupPage() {
                 autoFocus
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
-              <Input
-                id="username"
-                type="text"
-                placeholder="Choose a username"
-                value={username}
-                onChange={(e) => {
-                  setUsername(e.target.value)
-                  clearError()
-                  setLocalError(null)
-                }}
-                required
-                autoComplete="username"
-              />
-            </div>
+
+            <UsernameChecker
+              value={username}
+              onChange={(val) => {
+                setUsername(val)
+                clearError()
+                setLocalError(null)
+              }}
+            />
+
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <div className="relative">
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="Min. 8 characters"
+                  placeholder="8+ characters"
                   value={password}
                   onChange={(e) => {
                     setPassword(e.target.value)
@@ -137,13 +166,14 @@ export default function SignupPage() {
                 </button>
               </div>
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm password</Label>
               <div className="relative">
                 <Input
                   id="confirmPassword"
                   type={showConfirm ? "text" : "password"}
-                  placeholder="Re-enter your password"
+                  placeholder="Repeat your password"
                   value={confirmPassword}
                   onChange={(e) => {
                     setConfirmPassword(e.target.value)
@@ -167,21 +197,27 @@ export default function SignupPage() {
                 </button>
               </div>
             </div>
-          </CardContent>
-          <CardFooter className="flex flex-col gap-4 pt-2">
+
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Creating account…" : "Create account"}
+              {isLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              Create account
             </Button>
-            <p className="text-center text-sm text-muted-foreground">
-              Already have an account?{" "}
-              <Link to="/login" className="text-primary underline">
-                Sign in
-              </Link>
-            </p>
-          </CardFooter>
-        </form>
-      </Card>
-      <AppVersion />
+          </form>
+
+          <p className="mt-6 text-center text-sm text-muted-foreground">
+            Already have an account?{" "}
+            <Link
+              to="/login"
+              className="font-medium text-primary hover:underline"
+            >
+              Sign in
+            </Link>
+          </p>
+        </div>
+        <AppVersion />
+      </div>
     </div>
   )
 }
