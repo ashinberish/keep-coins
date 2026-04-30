@@ -18,13 +18,16 @@ from app.core.security import (
 )
 from app.models.account import Account
 from app.models.user import User
+from app.repositories.app_config_repository import AppConfigRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.auth import TokenResponse, UserCreate, UserLogin
 
 
 class AuthService:
     def __init__(self, db: AsyncSession):
+        self.db = db
         self.repo = UserRepository(db)
+        self.config_repo = AppConfigRepository(db)
 
     def _generate_and_set_code(self, user: User) -> str:
         code = generate_verification_code()
@@ -35,6 +38,14 @@ class AuthService:
         return code
 
     async def register(self, data: UserCreate) -> User:
+        # Check if signups are enabled
+        signup_config = await self.config_repo.get_by_key("signup.enabled")
+        if signup_config and signup_config.value != "true":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Signups are currently disabled",
+            )
+
         email = data.email.lower()
         if await self.repo.get_by_email(email):
             raise HTTPException(

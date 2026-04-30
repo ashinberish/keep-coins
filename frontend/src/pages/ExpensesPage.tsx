@@ -389,10 +389,10 @@ export default function ExpensesPage() {
                   "w-44 border-none bg-transparent font-mono text-4xl font-semibold tracking-tight transition-colors outline-none placeholder:text-muted-foreground/40",
                   amount
                     ? txnType === "income"
-                      ? "text-emerald-600 dark:text-emerald-400"
+                      ? "text-emerald-700 dark:text-emerald-400"
                       : txnType === "transfer"
-                        ? "text-blue-600 dark:text-blue-400"
-                        : "text-red-600 dark:text-red-400"
+                        ? "text-blue-700 dark:text-blue-400"
+                        : "text-red-700 dark:text-red-400"
                     : ""
                 )}
                 required
@@ -654,8 +654,8 @@ export default function ExpensesPage() {
                   className={cn(
                     "mt-1 font-mono text-xl font-bold tabular-nums",
                     monthBalance >= 0
-                      ? "text-emerald-600 dark:text-emerald-400"
-                      : "text-red-600 dark:text-red-400"
+                      ? "text-emerald-700 dark:text-emerald-400"
+                      : "text-red-700 dark:text-red-400"
                   )}
                 >
                   {monthBalance < 0 ? "-" : ""}
@@ -801,10 +801,10 @@ export default function ExpensesPage() {
                           className={cn(
                             "gap-1 border-transparent",
                             expense.type === "income"
-                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                              ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
                               : expense.type === "transfer"
-                                ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
-                                : "bg-red-500/10 text-red-600 dark:text-red-400"
+                                ? "bg-blue-500/10 text-blue-700 dark:text-blue-400"
+                                : "bg-red-500/10 text-red-700 dark:text-red-400"
                           )}
                         >
                           {expense.type === "income" ? (
@@ -869,6 +869,7 @@ export default function ExpensesPage() {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
+                            aria-label="Edit transaction"
                             onClick={() => openEdit(expense)}
                           >
                             <Pencil className="h-3.5 w-3.5" />
@@ -877,6 +878,7 @@ export default function ExpensesPage() {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 text-destructive hover:text-destructive"
+                            aria-label="Delete transaction"
                             onClick={() => handleDelete(expense.id)}
                           >
                             <Trash2 className="h-3.5 w-3.5" />
