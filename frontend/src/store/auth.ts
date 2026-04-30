@@ -20,6 +20,7 @@ interface AuthState {
   setDefaultAccount: (id: string | null) => Promise<void>
   setTheme: (theme: string) => Promise<void>
   updateUsername: (username: string) => Promise<void>
+  updateName: (fullName: string) => Promise<void>
   deleteAccount: () => Promise<void>
   completeOnboarding: () => Promise<void>
 }
@@ -142,6 +143,11 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   updateUsername: async (username) => {
     const { data } = await authApi.updateUsername(username)
+    set({ user: data })
+  },
+
+  updateName: async (fullName) => {
+    const { data } = await authApi.updateName(fullName)
     set({ user: data })
   },
 

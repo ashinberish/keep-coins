@@ -4,7 +4,11 @@ from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.email import generate_verification_code, send_verification_email
+from app.core.email import (
+    generate_verification_code,
+    send_password_reset_email,
+    send_verification_email,
+)
 from app.core.security import (
     create_access_token,
     create_refresh_token,
@@ -45,7 +49,7 @@ class AuthService:
 
         user = User(
             email=email,
-            username=data.username,
+            username=data.username.lower(),
             hashed_password=hash_password(data.password),
             is_email_verified=False,
         )
@@ -180,3 +184,50 @@ class AuthService:
             access_token=create_access_token(str(user.id)),
             refresh_token=create_refresh_token(str(user.id)),
         )
+
+    async def forgot_password(self, email: str) -> dict:
+        user = await self.repo.get_by_email(email)
+        if not user:
+            return {
+                "message": "If that email is registered, a reset code has been sent."
+            }
+        if not user.is_active:
+            return {
+                "message": "If that email is registered, a reset code has been sent."
+            }
+
+        code = self._generate_and_set_code(user)
+        await self.repo.db.commit()
+        send_password_reset_email(user.email, code)
+
+        return {"message": "If that email is registered, a reset code has been sent."}
+
+    async def reset_password(self, email: str, code: str, new_password: str) -> dict:
+        user = await self.repo.get_by_email(email)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid reset request",
+            )
+        if not user.verification_code or not user.verification_code_expires_at:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No reset code found. Please request a new one.",
+            )
+        if datetime.now(timezone.utc) > user.verification_code_expires_at:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Reset code has expired. Please request a new one.",
+            )
+        if user.verification_code != code:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid reset code",
+            )
+
+        user.hashed_password = hash_password(new_password)
+        user.verification_code = None
+        user.verification_code_expires_at = None
+        await self.repo.db.commit()
+
+        return {"message": "Password has been reset successfully"}
